@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, PanResponder } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 
 // Local Imports
@@ -8,7 +8,7 @@ import * as CommonStyles from './styles/common'
 "use strict";
 
 export default class TagButton extends React.Component {
-    onLayout = () => {
+    onLayout = (nativeEvent) => {
         if (this.element != undefined) {
             console.log("Measuring tag");
             this.element.measure(this.onMeasure);
@@ -18,12 +18,18 @@ export default class TagButton extends React.Component {
     }
 
     onMeasure = (x, y, width, height, screenX, screenY) => {
-        this.props.setDimensions && this.props.setDimensions(this.props.title, screenX, screenY, width, height);
+        this.props.setDimensions(this.props.title, screenX, screenY, width, height);
     };
 
     render() {
         return (
-        <View style={[styles.buttonContainer, this.props.style]} onLayout={this.onLayout} ref={element => this.element = element}>
+        <View 
+            style={[
+                styles.buttonContainer, 
+                this.props.style, 
+            ]} 
+            onLayout={this.props.setDimensions && this.onLayout} 
+            ref={element => this.element = element}>
             <TouchableOpacity onPress={() => {this.props.onClose && this.props.onClose()}}>
                 <Icon style={styles.cancelButton} name="circle-with-cross"/>
             </TouchableOpacity>
@@ -39,7 +45,7 @@ const styles = StyleSheet.create({
     buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: CommonStyles.BUTTON_CANCEL_SIZE,
         height: CommonStyles.BUTTON_HEIGHT,
         margin: CommonStyles.BUTTON_MARGIN,
     },

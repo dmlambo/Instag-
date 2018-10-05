@@ -8,8 +8,8 @@ import TagContainer from './TagContainer';
 
 // WARNING: This breaks things. Causes issues with visibility and TextViews.
 // Provides CALayer-style implicit animation
-//UIManager.setLayoutAnimationEnabledExperimental &&
-//  UIManager.setLayoutAnimationEnabledExperimental(true);
+UIManager.setLayoutAnimationEnabledExperimental &&
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 
 export default class App extends React.Component {
   constructor(props) {
@@ -41,7 +41,7 @@ export default class App extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffa',
     justifyContent: 'center',
   },
 });

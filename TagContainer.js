@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, PanResponder, Animated, Easing } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, PanResponder, Animated, Easing, TextInput } from 'react-native';
 
 // Local imports
 import TagButton from './TagButton';
+import TextModal from './TextModal';
 import * as CommonStyles from './styles/common'
 
 "use strict";
@@ -10,7 +11,6 @@ import * as CommonStyles from './styles/common'
 const AnimatedTagButton = Animated.createAnimatedComponent(TagButton);
 
 export default class TagContainer extends React.Component {
-  onAddHashtag = () => {};
   constructor(props) {
     super(props);
     
@@ -18,11 +18,11 @@ export default class TagContainer extends React.Component {
     // temp
     this.state = {
       items: ["one", "two", "kitties", "doggos", "snip", "snap", "woof", "oof", "owie"],
+      modalVisible: false,
       panX: new Animated.Value(0),
       panY: new Animated.Value(0),
     };
     this.tagPositions = {};
-    this.tagPositionsFatFinger = {};
 
     // Pan gesture is used to move tags from place to place
     // The tags are Measured and hit-tested manually, since the tags
@@ -50,12 +50,19 @@ export default class TagContainer extends React.Component {
 
         var idx = this.state.items.indexOf(this.hitElem);
 
+        // Bind values
+        var x = evt.nativeEvent.pageX;
+        var y = evt.nativeEvent.pageY;
+
         console.log("Index of " + this.hitElem + " is " + idx);
 
         this.setState({dragElem: this.hitElem, items:this.state.items, fingerX: 0, fingerY: 0},
         () => {
-          this.state.panX.setValue(0);
-          this.state.panY.setValue(0);
+          var tagPosition = this.tagPositions[this.state.dragElem];
+          var tagXOffset = new Animated.Value(-tagPosition.width / 2);
+          var tagYOffset = new Animated.Value(-tagPosition.height / 2);
+          this.state.panX.setValue(x);
+          this.state.panY.setValue(y);
 
           // Translate upwards so you can see what you're dragging
           var pop = new Animated.Value(0);
@@ -90,78 +97,70 @@ export default class TagContainer extends React.Component {
             ])
           ).start();
 
+          var tagPosition = this.tagPositions[this.state.dragElem];
 
           var position = this.tagPositions[this.state.dragElem];
           var dragItem =             
             this.state.dragElem &&
-              <AnimatedTagButton style={{
-                transform: [{scaleX: expand}, {scaleY: expand}],
-                position: 'absolute',
-                left: Animated.add(this.state.panX, new Animated.Value(position.screenX)),
-                top: Animated.add(Animated.add(this.state.panY, new Animated.Value(position.screenY)), pop),
-                width: position.width,
-                height: position.height,
-              }} title={this.state.dragElem}/>
+              <AnimatedTagButton style={[
+                styles.tag,
+                {
+                  transform: [{scaleX: expand}, {scaleY: expand}],
+                  position: 'absolute',
+                  left: Animated.add(this.state.panX, tagXOffset),
+                  top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
+                  width: position.width,
+                  height: position.height,
+              }]} title={this.state.dragElem}/>
 
           this.onTopLevelViewChanged(dragItem);
         });
       },
       onPanResponderMove: Animated.event([
-        null, 
-        {dx: this.state.panX, dy: this.state.panY}],
+        {nativeEvent: {pageX: this.state.panX, pageY: this.state.panY}, }, 
+        null],
         {listener: (evt, gestureState) => {
-          var closest = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
-          this.setState({...this.state, closest});
+          var {closest, side} = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          if (closest != this.state.dragElem) {
+            var idx = this.state.items.indexOf(this.state.dragElem);
+            this.state.items.splice(idx, 1);
+            idx = this.state.items.indexOf(closest);
+            this.state.items.splice(idx+side, 0, this.state.dragElem);
+            this.setState({...this.state});
+          }
         }}
       ),
-      
-      /* (evt, gestureState) => {
-        // The accumulated gesture distance since becoming responder is
-        // gestureState.d{x,y}
-        console.log("Move...");
-        
-        this.setState({...this.state, fingerX: gestureState.dx, fingerY: gestureState.dy});
-
-        // We've captured a tag, now just show it hovering under the finger.
-      }*/
       onPanResponderTerminationRequest: (evt, gestureState) => true,
       onPanResponderRelease: (evt, gestureState) => {
         console.log("Release...");
 
-        this.setState({dragElem: undefined, items:this.state.items});
+        this.setState({dragElem: undefined, closest: undefined, items:this.state.items});
         this.onTopLevelViewChanged(null);
         // Gesture succeeded, so figure out where to put it in the list.
       },
       onPanResponderTerminate: (evt, gestureState) => {
         console.log("Terminate...");
-        this.setState({dragElem: undefined, items:this.state.items});
+        this.setState({dragElem: undefined, closest: undefined, items:this.state.items});
         this.onTopLevelViewChanged(null);
         // Gesture was cancelled for some reason, replace the tag where it started.
       },
     });
-
-    this.onAddHashtag = props.onAddHashtag;
   }
 
   setTagDimensions = (tag, screenX, screenY, width, height) => {
     // TODO: Padding and margins don't stack on the edges of the
-    // buttons, so we need a smarter hit test. 
-    //var pad = CommonStyles.BUTTON_SPACING;
-    var pad = CommonStyles.BUTTON_PADDING;
-    var sX = screenX - pad;
-    var sY = screenY - pad;
-    var sW = width + pad * 2;
-    var sH = height + pad * 2;
+    // buttons, so we need a smarter fat-fingers test.
+    var centerX = screenX + width / 2.0;
+    var centerY = screenY + height / 2.0; 
 
-    console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
-    this.tagPositions[tag] = {screenX: screenX, screenY: screenY, width: width, height: height};
-    this.tagPositionsFatFinger[tag] = {screenX: sX, screenY: sY, width: sW, height: sH};
+    //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
+    this.tagPositions[tag] = {centerX, centerY, screenX, screenY, width, height};
   }
 
   hitTest = (screenX, screenY) => {
-    console.log("Hit test at " + screenX + ", " + screenY);
-    for (var key in this.tagPositionsFatFinger) {
-      var val = this.tagPositionsFatFinger[key];
+    //console.log("Hit test at " + screenX + ", " + screenY);
+    for (var key in this.tagPositions) {
+      var val = this.tagPositions[key];
       if (screenX >= val.screenX && screenY >= val.screenY &&
           screenX <= (val.screenX + val.width) && screenY <= (val.screenY + val.height)) {
             return key;
@@ -171,13 +170,16 @@ export default class TagContainer extends React.Component {
   }
 
   closestTest = (screenX, screenY) => {
+/* Following code is a RTL-text-style search that finds the closest line
+   first, and then the closest tag within that line, much like the carat
+   positioning on Android/iOS.
     var lastY = -1;
     var lines = [];
     var idx = -1;
 
     // Organize the tags into lines
-    for (var key in this.tagPositionsFatFinger) {
-      var val = this.tagPositionsFatFinger[key];
+    for (var key in this.tagPositions) {
+      var val = this.tagPositions[key];
       if (val.screenY != lastY) {
         idx++;
         lines[idx] = new Map();
@@ -211,8 +213,59 @@ export default class TagContainer extends React.Component {
         closestKey = key;
       }      
     });
+    /* RTL-text-style */
 
-    return closestKey;
+    // Find closest to center of each tag. This has implications for long
+    // tags next to short tags, with a selection bias towards the smaller.
+    var closestTag = Number.MAX_SAFE_INTEGER;
+    var closest = "";
+    var side = 0;
+
+    for (var key in this.tagPositions) {
+      var val = this.tagPositions[key];
+      var distX = val.centerX - screenX;
+      var distY = val.centerY - screenY;
+      var dist = Math.sqrt(distX * distX + distY * distY);
+
+      if (dist < closestTag) {
+        closestTag = dist;
+        closest = key;
+        if (distX < 0) {
+          side = 0;
+        } else {
+          side = 1;
+        }
+      }
+    };
+
+    return {closest, side};
+  }
+
+  onClose = (key) => {
+    var newItems = this.state.items.slice(0);
+    var idx = newItems.indexOf(key);
+    newItems.splice(idx, 1);
+    this.setState({...this.state, items: newItems}, () => {
+      delete this.tagPositions[key];
+    });
+  }
+
+  // Show modal
+  onAddHashtag = () => {
+    console.log("Adding hashtag");
+    this.setState({...this.state, modalVisible: true});
+  };
+
+  // Not interested in the text, back button pressed.
+  onRequestModalClose = () => {
+    this.setState({...this.state, modalVisible: false});
+  };  
+
+  onAdd = (text) => {
+    console.log("Adding #" + text);
+    var newItems = this.state.items.slice();
+    newItems.push(text);
+    this.setState({...this.state, items: newItems, modalVisible: false})
   }
 
   render() {
@@ -221,14 +274,21 @@ export default class TagContainer extends React.Component {
         <View style={styles.flextainer}>
           {
             this.state.items.map((x) => 
-              <TagButton style={this.state.closest === x ? styles.closestTag : styles.tag} title={x} key={x} onClose={() => {this.onClose && this.onClose(x)}}
+              <TagButton 
+                style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
+                title={x} key={x} 
+                onClose={() => {this.onClose && this.onClose(x)}}
                 setDimensions={this.setTagDimensions}/>
             )
           }
-          <TouchableOpacity onPress={this.onAddHashtag}>
+          <TouchableOpacity onPress={() => { this.onAddHashtag() }}>
             <Text style={styles.addButton}>Add</Text>
           </TouchableOpacity>
         </View>
+        <TextModal 
+          visible={this.state.modalVisible}
+          onRequestClose={this.onRequestModalClose} 
+          onTextAccepted={this.onAdd}/>
       </View>
     );
   }
@@ -236,14 +296,11 @@ export default class TagContainer extends React.Component {
 
 const styles = StyleSheet.create({
   movingTag: {
+    backgroundColor: '#44d',
     opacity: 0.1,
-    backgroundColor: '#44d'
   },
   tag: {
-    backgroundColor: '#aaa'
-  },
-  closestTag: {
-    backgroundColor: '#f55'
+    backgroundColor: '#aaa',
   },
   container: {
     width: 400,
@@ -254,7 +311,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: 'wrap',
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    justifyContent: 'space-between'
   },
   addButton: {
     fontSize: CommonStyles.BUTTON_TEXT_SIZE,
