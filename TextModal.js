@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, StyleSheet, Modal, TextInput, KeyboardAvoidingView, TouchableHighlight } from 'react-native';
+import { 
+    Text, 
+    View, 
+    StyleSheet, 
+    Modal, 
+    TextInput, 
+    KeyboardAvoidingView, 
+    TouchableOpacity,
+    TouchableWithoutFeedback } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 
 export default class TextModal extends React.Component
@@ -9,6 +17,7 @@ export default class TextModal extends React.Component
 
         this.state = {
             text: "",
+            status: this.props.onFilterText(""),
         };
     }
 
@@ -18,31 +27,45 @@ export default class TextModal extends React.Component
                 animationType="fade"
                 transparent={true}
                 visible={this.props.visible}
-                onShow={() => { this.primaryTextInput.focus() }} // autoFocus does nothing.
+                onShow={() => { 
+                    this.setState({ text: "", status: this.props.onFilterText("") }); // Child views are destroyed, so onChangeText is never called, so reset the state.
+                    this.primaryTextInput.focus(); // autoFocus does nothing.
+                }}
                 onRequestClose={() => {
                     this.props.onRequestClose();
                 }}>
                 <View style={styles.container}>
-                    <KeyboardAvoidingView style={styles.avoidingView} behavior="height">
+                    <KeyboardAvoidingView style={styles.textAvoidingView} behavior='height'>
+                        <Text style={styles.hashtag}>#</Text>
                         <TextInput 
+                            ref={(ref) => { this.primaryTextInput = ref }} // autoFocus does nothing. see onShow
+
                             style={[styles.textInput, styles.text]} 
-                            placeholder="hashtag"
                             clearButtonMode="always"
                             autoCorrect={false}
                             autoCapitalize="none"
                             returnKeyType="done"
                             underlineColorAndroid='#0000'
-                            onChangeText={(text) => this.setState({...this.state, text})} 
-                            ref={(ref) => { this.primaryTextInput = ref }} // autoFocus does nothing.
+                            //placeholder="hashtag" // Bug: Placeholder doesn't affect intrinsic size. Layout is incorrect.
+                            //placeholderTextColor='#888'
+                            
+                            onChangeText={(text) => {
+                                this.setState({text, status: this.props.onFilterText(text) });
+                            }}
                         />
-
-                        <TouchableHighlight
-                            style={styles.button}
-                            onPress={() => {
-                                this.props.onTextAccepted(this.state.text);
-                            }}>
-                            <Icon style={[styles.icon, styles.text]} name="check"/>
-                        </TouchableHighlight>
+                    </KeyboardAvoidingView>
+                    <KeyboardAvoidingView style={styles.buttonAvoidingView} behavior='padding'>
+                        <View style={styles.buttonContainer}>
+                            <Text style={styles.statusText}>{this.state.status}</Text>
+                            <TouchableOpacity
+                                disabled={this.state.status != null}
+                                style={styles.button}
+                                onPress={() => {
+                                    this.props.onTextAccepted(this.state.text);
+                                }}>
+                                <Icon style={[styles.icon, styles.text]} name="check"/>
+                            </TouchableOpacity>
+                        </View>
                     </KeyboardAvoidingView>
                 </View>
             </Modal>
@@ -52,27 +75,57 @@ export default class TextModal extends React.Component
 
 const styles = StyleSheet.create({
     container: {
-        ...StyleSheet.absoluteFillObject, 
+        ...StyleSheet.absoluteFillObject,
         backgroundColor: '#000a',
     },
     text: {
-        color: '#ddd',
+        color: '#aaa',
         fontSize: 28,
     },
-    avoidingView: {
-        ...StyleSheet.absoluteFillObject, 
+    hashtag: {
+        color: '#777',
+        fontSize: 38,
+    },
+    textAvoidingView: {
+        ...StyleSheet.absoluteFillObject,
+        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    buttonAvoidingView: {
+        position: 'absolute',
+        bottom: 0,
+        height: 74, // Oh dear.
+        width: '100%',
     },
     textInput: {
         right: 0, 
         left: 0,
         height: 50,
     },
-    button: {
+    buttonContainer: {
         position: 'absolute',
-        bottom: 15,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        bottom: 5,
         right: 5,
+    },    
+    statusText: {
+        color: '#777',
+        fontSize: 20,
+        margin: 5,
+        bottom: 0,
+        top: 0,
+        textAlign: 'center',
+    },
+    button: {
+        width: 64,
+        height: 64,
+        backgroundColor: '#333',
+        borderRadius: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     icon: {
     },

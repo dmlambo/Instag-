@@ -268,6 +268,16 @@ export default class TagContainer extends React.Component {
     this.setState({...this.state, items: newItems, modalVisible: false})
   }
 
+  onFilterText = (text) => {
+    if (text == "") {
+      return "Enter hashtag";
+    }
+    if (this.state.items.indexOf(text) != -1) {
+      return "Hashtag already in the list";
+    }
+    return undefined;
+  }
+
   render() {
     return (
       <View style={styles.container} {...this._panResponder.panHandlers}>
@@ -288,7 +298,8 @@ export default class TagContainer extends React.Component {
         <TextModal 
           visible={this.state.modalVisible}
           onRequestClose={this.onRequestModalClose} 
-          onTextAccepted={this.onAdd}/>
+          onTextAccepted={this.onAdd}
+          onFilterText={this.onFilterText}/>
       </View>
     );
   }
