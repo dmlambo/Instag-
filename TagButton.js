@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 
 // Local Imports
@@ -23,18 +23,17 @@ export default class TagButton extends React.Component {
 
     render() {
         return (
-        <View 
-            style={[
-                styles.buttonContainer, 
-                this.props.style, 
-            ]} 
-            onLayout={this.props.setDimensions && this.onLayout} 
-            ref={element => this.element = element}>
+        <View
+            {...this.props}
+            collapsable={false}
+            onLayout={this.props.setDimensions && this.onLayout}>
+            <View style={styles.buttonContainer} ref={element => this.element = element}>
             <TouchableOpacity onPress={() => {this.props.onClose && this.props.onClose()}}>
                 <Icon style={styles.cancelButton} name="circle-with-cross"/>
             </TouchableOpacity>
             <View>
                 <Text style={styles.buttonText}>{this.props.title}</Text>
+            </View>
             </View>
         </View>
         );
@@ -43,6 +42,7 @@ export default class TagButton extends React.Component {
 
 const styles = StyleSheet.create({
     buttonContainer: {
+        backgroundColor: '#aff',
         flexDirection: 'row',
         justifyContent: 'center',
         borderRadius: CommonStyles.BUTTON_CANCEL_SIZE,

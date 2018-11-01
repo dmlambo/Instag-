@@ -10,6 +10,9 @@ import {
     TouchableWithoutFeedback } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
 
+// Paper
+import { FAB } from 'react-native-paper';
+
 export default class TextModal extends React.Component
 {
     constructor(props) {
@@ -57,14 +60,12 @@ export default class TextModal extends React.Component
                     <KeyboardAvoidingView style={styles.buttonAvoidingView} behavior='padding'>
                         <View style={styles.buttonContainer}>
                             <Text style={styles.statusText}>{this.state.status}</Text>
-                            <TouchableOpacity
+                            <FAB
                                 disabled={this.state.status != null}
-                                style={styles.button}
-                                onPress={() => {
-                                    this.props.onTextAccepted(this.state.text);
-                                }}>
-                                <Icon style={[styles.icon, styles.text]} name="check"/>
-                            </TouchableOpacity>
+                                style={styles.fab}
+                                icon="check"
+                                onPress={() => this.props.onTextAccepted(this.state.text)}
+                            />                    
                         </View>
                     </KeyboardAvoidingView>
                 </View>
@@ -128,5 +129,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     icon: {
+    },
+    fab: {
+        margin: 16,
     },
 });

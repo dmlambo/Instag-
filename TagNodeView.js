@@ -1,33 +1,24 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { StyleSheet, LayoutAnimation, View, TouchableOpacity } from 'react-native';
 import Icon from 'react-native-vector-icons/Entypo';
+
+// Paper
+import { DefaultTheme, Surface, Paragraph, Title, withTheme, TouchableRipple } from 'react-native-paper';
 
 'use strict';
 
-// 3rd Party Imports
-import Modal from "react-native-modal";
-
-// Local imports
-import TagContainer from './TagContainer';
-
 // TagNodeView acts as a tree-view visual node, showing each node's
 // data, and a list of children underneath, each of which can be
-// expanded, and edited.
+// expanded, edited, and selected.
 // TODO: Serialization
-export default class TagNodeView extends React.Component {
+class TagNodeView extends React.Component {
   constructor(props) {
     super(props);
 
-    // TODO: How do we handle serialization? Should we deserialize on construction?
-    // Who changes the data? Is there a manager of some kind? Does the tree
-    // hold refs to React components? (I feel like that's contradictory to
-    // React design)
+    this.path = props.pathForNode(props);
 
     this.state = {
       expanded: false,
-      children: props.children,
-      data: props.data,
-      title: props.title,
     }
   }
 
@@ -43,23 +34,16 @@ export default class TagNodeView extends React.Component {
     }
   }
 
-  showEditModal = () => {
-    this.setState({editModalVisible: true});
+  showEditModal = (items) => {
+    //this.setState({editModalVisible: true});
+    this.props.nagivation.push("Edit", {})
   }
 
   getContentView = () => {
     if (this.state.expanded) {
       return (
         <View style={{flexDirection: 'row'}}>
-          <View style={styles.insetBar}/>
-          <View style={styles.insetBarCap}/>
           <View style={{flexDirection: 'column', flex: 1.0}}>
-            <View style={styles.contentView}>
-              <Text style={{padding: 5, flex: 1.0}}>{this.state.data}</Text>
-              <TouchableOpacity onPress={this.showEditModal}>
-                <Icon style={styles.titleBarExpand} name="edit"/>
-              </TouchableOpacity>
-            </View>
             {
               this.getChildViews()
             }
@@ -69,10 +53,18 @@ export default class TagNodeView extends React.Component {
     }
   }
 
+  onEditNode = () => {
+    this.props.onEditNode(this.state.data, this.state.title);
+  }
+
   getChildViews = () => {
-    if (this.state.children) {
-      return this.state.children.map(({title, data, children}, idx) =>
-          <TagNodeView key={idx} children={children} title={title} data={data}/>
+    if (this.props.nodeData.children) {
+      return this.props.nodeData.children.map((nodeData, idx) =>
+          <TagNodeView 
+            {...this.props}
+            key={idx} 
+            nodeData={nodeData}
+            parentPath={this.path}/>
       );
     } else {
       return <View/>;
@@ -80,92 +72,82 @@ export default class TagNodeView extends React.Component {
   }
 
   onExpandPress = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     this.setState({expanded: !this.state.expanded});
   }
 
-  onMenuPress = () => {
-    
+  onLongPress = () => {
+    this.props.onNodeSelected(this.path);
   }
 
   render() {
+    const noTagsText = "No Tags!";
+    var tagsText = this.props.nodeData.data == undefined ? 
+      noTagsText :
+      this.props.nodeData.data.map((x)=>"#" + x).join(" ");
+    var selected = this.props.selectedPredicate(this.path);
+    var backgroundColor = selected ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;
+
     // |ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ|    |ˉˉˉˉˉˉˉˉˉˉˉˉˉ|
     // | >               Title               ... | -> | Add Section |
-    // |_________________________________________|    | Delete  ... |
-    // :  #foo #bar #baz                    Edit :
-    // :-----------------------------------------:
+    // |                                         |    | Delete  ... |
+    // |  #foo #bar #baz                       > |
+    // | --------------------------------------- :
     // ( Everything under is another TagNodeView )
     return (
-      <View style={this.props.style}>
-        <Modal isVisible={this.state.editModalVisible}>
-          <TagContainer/>
-        </Modal>
-        <View style={styles.titleBar}>
-          <TouchableOpacity onPress={this.onExpandPress}>
-            {
-              this.getExpandView(this.state.expanded)
-            }
-          </TouchableOpacity>
-          <Text style={styles.titleBarText}>{this.props.title}</Text>
-          <TouchableOpacity onPress={this.onMenuPress}>
-            <Icon style={styles.titleBarMenu} name="menu"/>
-          </TouchableOpacity>
-        </View>
-        <View>
-          { 
-            this.getContentView(this.state.expanded) 
-          }
-        </View>
-        <View style={styles.separatorBar}/>
-      </View>
+      <Surface style={[styles.container, this.props.style, {backgroundColor}]}>
+        <TouchableRipple 
+          borderless 
+          onPress={this.props.selectionMode ? this.onLongPress : this.onExpandPress} 
+          onLongPress={this.onLongPress}
+          style={[...StyleSheet.absoluteFillObject, {borderRadius: 4}]}>
+          <View>
+            <View style={styles.titleBar}>
+              <TouchableOpacity onPress={() => this.setState({expanded: !this.state.expanded})}>
+                { this.getExpandView(this.state.expanded) }
+              </TouchableOpacity>
+              <Title style={styles.titleBarText}>{this.props.nodeData.title}</Title>
+              <TouchableOpacity style={{padding: 5}} onPress={this.onEditNode}>
+                <Icon style={styles.titleBarExpand} name="edit"/>
+              </TouchableOpacity>
+            </View>
+            <Paragraph style={styles.tagsText}>{tagsText}</Paragraph>
+            <View>
+              { 
+                this.getContentView(this.state.expanded) 
+              }
+            </View>
+          </View>
+        </TouchableRipple>
+      </Surface>
     );
   }
 }
 
 const styles = StyleSheet.create({
+  container: {
+    margin: 8, 
+    elevation: 4, 
+    borderRadius: 4, 
+    paddingBottom: 8, 
+  },
   titleBar: {
     height: 50,
     width: '100%',
-    backgroundColor: '#bbe',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-
-    // Shadows
-    shadowColor: "black",
-    shadowOffset: {width: 0, height: 0},
-    shadowOpacity: 0.5,
-    shadowRadius: 10.0,
   },
   titleBarText: {
-    fontSize: 24,
-    textAlign: 'center',
     flex: 1.0,
   },
   titleBarExpand: {
     fontSize: 24,
     padding: 5,
   },
-  titleBarMenu: {
-    fontSize: 34,
-    padding: 5,
-  },
-  contentView: {
-    flexDirection: 'row',
-    backgroundColor: '#bbb',
-  },
-  insetBar: {
-    height: '100%',
-    width: 8,
-    backgroundColor: '#aac',
-  },
-  insetBarCap: {
-    height: '100%',
-    width: 1,
-    backgroundColor: '#eee',
-  },
-  separatorBar: {
-    height: 2,
-    width: '100%',
-    backgroundColor: '#aaa',
-  }  
+  tagsText: {
+    margin: 8,
+  }
 });
+
+export default withTheme(TagNodeView);

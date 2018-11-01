@@ -1,26 +1,32 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, PanResponder, Animated, Easing, TextInput } from 'react-native';
+import { StyleSheet, Text, View, TouchableWithoutFeedback, PanResponder, Animated, Easing, TextInput } from 'react-native';
 
 // Local imports
 import TagButton from './TagButton';
-import TextModal from './TextModal';
 import * as CommonStyles from './styles/common'
+
+// 3rd Party Imports
+import Icon from 'react-native-vector-icons/Entypo';
+
+// Paper
+import { DefaultTheme, Portal, Chip, TouchableRipple, Surface, withTheme } from "react-native-paper";
 
 "use strict";
 
-const AnimatedTagButton = Animated.createAnimatedComponent(TagButton);
+const AnimatedChip = Animated.createAnimatedComponent(Chip);
 
-export default class TagContainer extends React.Component {
+class TagContainer extends React.Component {
   constructor(props) {
     super(props);
     
-    this.onTopLevelViewChanged = this.props.onTopLevelViewChanged;
     // temp
     this.state = {
-      items: ["one", "two", "kitties", "doggos", "snip", "snap", "woof", "oof", "owie"],
-      modalVisible: false,
+      items: this.props.items,
       panX: new Animated.Value(0),
       panY: new Animated.Value(0),
+      dragElem: undefined,
+      hitElem: undefined,
+      topLevelView: undefined,
     };
     this.tagPositions = {};
 
@@ -30,35 +36,31 @@ export default class TagContainer extends React.Component {
     // in the visual tree without losing the gesture. (Possible bug: 
     // terminate/release is not called)
     this._panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gestureState) => {
-        // If the drag happens on an element, the gesture should succeed,
-        // otherwise we throw it out. This should allow parent scrollviews'
-        // gestures to succeed.
-        this.hitElem = this.hitTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
-
-        console.log("Drag element is " + this.hitElem);
-
-        return this.hitElem != undefined;
-      },
+      onStartShouldSetPanResponder: (evt, gestureState) => false,
       onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
-      onMoveShouldSetPanResponder: (evt, gestureState) => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Ugh. The gesture responder chain is all sorts of inadequate.
+        // Just deal with this later.
+        return false;
+        var dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
+        return dist > 16;
+      },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => false,
-
       onPanResponderGrant: (evt, gestureState) => {
         // gestureState.d{x,y} will be set to zero now
         console.log("Granted...");
 
-        var idx = this.state.items.indexOf(this.hitElem);
+        var idx = this.state.items.indexOf(this.state.hitElem);
 
         // Bind values
         var x = evt.nativeEvent.pageX;
         var y = evt.nativeEvent.pageY;
 
-        console.log("Index of " + this.hitElem + " is " + idx);
+        console.log("Index of " + this.state.hitElem + " is " + idx);
 
-        this.setState({dragElem: this.hitElem, items:this.state.items, fingerX: 0, fingerY: 0},
+        this.setState({dragElem: this.state.hitElem, items:this.state.items, fingerX: 0, fingerY: 0},
         () => {
-          var tagPosition = this.tagPositions[this.state.dragElem];
+          var tagPosition = {width: 100, height: 32}; //this.tagPositions[this.state.dragElem];
           var tagXOffset = new Animated.Value(-tagPosition.width / 2);
           var tagYOffset = new Animated.Value(-tagPosition.height / 2);
           this.state.panX.setValue(x);
@@ -99,10 +101,10 @@ export default class TagContainer extends React.Component {
 
           var tagPosition = this.tagPositions[this.state.dragElem];
 
-          var position = this.tagPositions[this.state.dragElem];
+          var position = {width: 100, height: 32};// this.tagPositions[this.state.dragElem];
           var dragItem =             
             this.state.dragElem &&
-              <AnimatedTagButton style={[
+              <AnimatedChip style={[
                 styles.tag,
                 {
                   transform: [{scaleX: expand}, {scaleY: expand}],
@@ -113,7 +115,8 @@ export default class TagContainer extends React.Component {
                   height: position.height,
               }]} title={this.state.dragElem}/>
 
-          this.onTopLevelViewChanged(dragItem);
+          // TODO: Is this OK?
+          this.setState({topLevelView: dragItem});
         });
       },
       onPanResponderMove: Animated.event([
@@ -134,17 +137,34 @@ export default class TagContainer extends React.Component {
       onPanResponderRelease: (evt, gestureState) => {
         console.log("Release...");
 
-        this.setState({dragElem: undefined, closest: undefined, items:this.state.items});
-        this.onTopLevelViewChanged(null);
+        this.setState({
+          dragElem: undefined, 
+          hitElem: undefined,
+          closest: undefined, 
+          topLevelView: undefined,
+        });
         // Gesture succeeded, so figure out where to put it in the list.
       },
       onPanResponderTerminate: (evt, gestureState) => {
         console.log("Terminate...");
-        this.setState({dragElem: undefined, closest: undefined, items:this.state.items});
-        this.onTopLevelViewChanged(null);
+        this.setState({
+          dragElem: undefined, 
+          hitElem: undefined,
+          closest: undefined, 
+          topLevelView: undefined,
+        });
         // Gesture was cancelled for some reason, replace the tag where it started.
       },
     });
+  }
+
+  onLayout = (nativeEvent) => {
+    if (this.element != undefined) {
+        console.log("Measuring tag");
+        this.element.measure(this.onMeasure);
+    } else {
+        console.log("No reference to tag");
+    }
   }
 
   setTagDimensions = (tag, screenX, screenY, width, height) => {
@@ -242,7 +262,7 @@ export default class TagContainer extends React.Component {
   }
 
   onClose = (key) => {
-    var newItems = this.state.items.slice(0);
+    var newItems = this.state.items ? this.state.items.slice(0) : [];
     var idx = newItems.indexOf(key);
     newItems.splice(idx, 1);
     this.setState({...this.state, items: newItems}, () => {
@@ -250,56 +270,33 @@ export default class TagContainer extends React.Component {
     });
   }
 
-  // Show modal
-  onAddHashtag = () => {
-    console.log("Adding hashtag");
-    this.setState({...this.state, modalVisible: true});
-  };
-
-  // Not interested in the text, back button pressed.
-  onRequestModalClose = () => {
-    this.setState({...this.state, modalVisible: false});
-  };  
-
-  onAdd = (text) => {
-    console.log("Adding #" + text);
-    var newItems = this.state.items.slice();
-    newItems.push(text);
-    this.setState({...this.state, items: newItems, modalVisible: false})
-  }
-
-  onFilterText = (text) => {
-    if (text == "") {
-      return "Enter hashtag";
-    }
-    if (this.state.items.indexOf(text) != -1) {
-      return "Hashtag already in the list";
-    }
-    return undefined;
-  }
-
   render() {
     return (
-      <View style={styles.container} {...this._panResponder.panHandlers}>
+      <View style={[styles.container, this.props.style]} collapsable={false} {...this._panResponder.panHandlers}>
         <View style={styles.flextainer}>
           {
-            this.state.items.map((x) => 
-              <TagButton 
+            this.props.items == undefined ? null : this.props.items.map((x) =>
+              /*<TagButton 
+                onLongPress={() => this.setState({topLevelview: })}
                 style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
                 title={x} key={x} 
                 onClose={() => {this.onClose && this.onClose(x)}}
-                setDimensions={this.setTagDimensions}/>
+                setDimensions={this.setTagDimensions}/>*/
+                <TouchableWithoutFeedback key={x+"Touch"} onPress={() => {console.log("pressed.."); this.setState({hitElem: x})}}>
+                  <Chip 
+                    style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
+                    key={x} 
+                    //onPress={() => {}}
+                    onClose={() => {this.onClose && this.onClose(x)}}>
+                      {x}
+                  </Chip>
+                </TouchableWithoutFeedback>
             )
           }
-          <TouchableOpacity onPress={() => { this.onAddHashtag() }}>
-            <Text style={styles.addButton}>Add</Text>
-          </TouchableOpacity>
+          <Portal>
+              {this.state.topLevelView == undefined ? <View/> : this.state.topLevelView}
+          </Portal>
         </View>
-        <TextModal 
-          visible={this.state.modalVisible}
-          onRequestClose={this.onRequestModalClose} 
-          onTextAccepted={this.onAdd}
-          onFilterText={this.onFilterText}/>
       </View>
     );
   }
@@ -309,25 +306,24 @@ const styles = StyleSheet.create({
   movingTag: {
     backgroundColor: '#44d',
     opacity: 0.1,
+    margin: 3,
+    height: 32,
   },
   tag: {
-    backgroundColor: '#aaa',
+    backgroundColor: '#fff',
+    margin: 3,
+    height: 32,
   },
   container: {
-    width: 400,
-    height: 400,
-    backgroundColor: '#eee'
+    ...StyleSheet.absoluteFillObject,
   },
   flextainer: {
+    margin: 8,
     flex: 1,
     flexWrap: 'wrap',
     flexDirection: 'row',
-    justifyContent: 'space-between'
-  },
-  addButton: {
-    fontSize: CommonStyles.BUTTON_TEXT_SIZE,
-    color: '#55f',
-    paddingLeft: CommonStyles.BUTTON_PADDING,
-    paddingRight: CommonStyles.BUTTON_PADDING,
+    justifyContent: 'flex-start',
   },
 });
+
+export default withTheme(TagContainer);
