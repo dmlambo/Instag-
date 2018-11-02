@@ -3,7 +3,18 @@ import { StyleSheet, LayoutAnimation, View, TouchableOpacity } from 'react-nativ
 import Icon from 'react-native-vector-icons/Entypo';
 
 // Paper
-import { DefaultTheme, Surface, Paragraph, Title, withTheme, TouchableRipple } from 'react-native-paper';
+import { 
+  DefaultTheme, 
+  Surface, 
+  Paragraph, 
+  Title, 
+  TouchableRipple,
+  IconButton,
+  Portal,
+  Dialog,
+  Button,
+  withTheme,  
+} from 'react-native-paper';
 
 'use strict';
 
@@ -54,7 +65,7 @@ class TagNodeView extends React.Component {
   }
 
   onEditNode = () => {
-    this.props.onEditNode(this.state.data, this.state.title);
+    this.props.onEditNode(this.path);
   }
 
   getChildViews = () => {
@@ -80,6 +91,33 @@ class TagNodeView extends React.Component {
     this.props.onNodeSelected(this.path);
   }
 
+  onAddNode = () => {
+    this.props.onAddNode(this.path);
+  }
+
+  onDeleteNode = () => {
+    this.props.onDeleteNode(this.path);
+  }
+
+  hideDeleteNodeDialog = () => {
+    this.setState({deleteNodeDialogVisible: false});
+  }
+
+  getUtilityButtons = () => {
+    if (this.props.selectionMode) {
+      return ([
+        <IconButton style={styles.utilityButton} key="1" onPress={() => {}} icon="vertical-align-bottom"/>,
+        <IconButton style={styles.utilityButton} key="2" onPress={() => {}} icon="vertical-align-top"/>,
+      ]);
+  } else {
+      return ([
+        <IconButton style={styles.utilityButton} key="3" onPress={() => this.setState({deleteNodeDialogVisible: true})} icon="delete-sweep"/>,
+        <IconButton style={styles.utilityButton} key="4" onPress={this.onAddNode} icon="playlist-add"/>,
+        <IconButton style={styles.utilityButton} key="5" onPress={this.onEditNode} icon="edit"/>,
+      ]);
+    }
+  }
+
   render() {
     const noTagsText = "No Tags!";
     var tagsText = this.props.nodeData.data == undefined ? 
@@ -102,14 +140,27 @@ class TagNodeView extends React.Component {
           onLongPress={this.onLongPress}
           style={[...StyleSheet.absoluteFillObject, {borderRadius: 4}]}>
           <View>
+          <Portal>
+                <Dialog
+                  visible={this.state.deleteNodeDialogVisible}
+                  onDismiss={this.hideDeleteNodeDialog}>
+                  <Dialog.Title>Warning</Dialog.Title>
+                  <Dialog.Content>
+                    <Paragraph>Are you sure you want to delete {this.props.nodeData.title}?</Paragraph>
+                  </Dialog.Content>
+                  <Dialog.Actions>
+                    <Button onPress={this.hideDeleteNodeDialog}>Cancel</Button>
+                    <Button onPress={this.onDeleteNode}>Delete</Button>
+                  </Dialog.Actions>
+                </Dialog>
+              </Portal>
+
             <View style={styles.titleBar}>
               <TouchableOpacity onPress={() => this.setState({expanded: !this.state.expanded})}>
                 { this.getExpandView(this.state.expanded) }
               </TouchableOpacity>
               <Title style={styles.titleBarText}>{this.props.nodeData.title}</Title>
-              <TouchableOpacity style={{padding: 5}} onPress={this.onEditNode}>
-                <Icon style={styles.titleBarExpand} name="edit"/>
-              </TouchableOpacity>
+              { this.getUtilityButtons() }
             </View>
             <Paragraph style={styles.tagsText}>{tagsText}</Paragraph>
             <View>
@@ -137,16 +188,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingRight: 8,
+    paddingLeft: 8,
   },
   titleBarText: {
     flex: 1.0,
   },
   titleBarExpand: {
     fontSize: 24,
-    padding: 5,
   },
   tagsText: {
     margin: 8,
+  },
+  utilityButton: {
+    width: 32,
+    height: 32,
+    margin: 0,
   }
 });
 

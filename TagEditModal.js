@@ -17,22 +17,20 @@ export default class TagEditModal extends React.Component {
   static navigationOptions = ({navigation}) => {
     return {
       title: navigation.getParam("title"),
-      headerRight: (
-        <Button
-          onPress={() => alert('This is a button!')}
-          title="Info"
-          color="#fff"
-        />
-      )
     }
   };
 
   constructor(props) {
     super(props);
 
+    this.blurSubscription = this.props.navigation.addListener('willBlur', payload => {
+      console.log("Well hello there.");
+      this.props.navigation.getParam("onSubmitted")(this.props.navigation.getParam("path"), this.state.items);
+    })
+
     this.state = {
       editModalVisible: false,
-      items: this.props.navigation.getParam("items", []),
+      items: this.props.navigation.getParam("data", []),
     }
   }
 
