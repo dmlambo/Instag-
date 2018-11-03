@@ -3,7 +3,8 @@ import { StyleSheet, Text, View, UIManager } from 'react-native';
 import { SafeAreaView, DrawerItems, createDrawerNavigator } from 'react-navigation';
 
 // Local imports
-import Root from './Root'
+import Root from './Root';
+import Settings from './Settings';
 
 // Paper
 import { Provider as PaperProvider, DefaultTheme, FAB, Title } from 'react-native-paper';
@@ -26,9 +27,12 @@ const DrawerComponent = (props) => (
 );
 
 let RootNavigator = createDrawerNavigator({
-  Tags: { 
+  Tags: {
     screen: Root
   },
+  Settings: {
+    screen: Settings
+  }
 }, {
   contentComponent: DrawerComponent
 });

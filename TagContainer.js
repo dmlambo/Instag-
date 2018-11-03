@@ -261,41 +261,27 @@ class TagContainer extends React.Component {
     return {closest, side};
   }
 
-  onClose = (key) => {
-    var newItems = this.state.items ? this.state.items.slice(0) : [];
-    var idx = newItems.indexOf(key);
-    newItems.splice(idx, 1);
-    this.setState({...this.state, items: newItems}, () => {
-      delete this.tagPositions[key];
-    });
-  }
-
   render() {
     return (
-      <View style={[styles.container, this.props.style]} collapsable={false} {...this._panResponder.panHandlers}>
+      <View style={[styles.container, this.props.style]} {...this._panResponder.panHandlers}>
         <View style={styles.flextainer}>
           {
-            this.props.items == undefined ? null : this.props.items.map((x) =>
+            this.props.items && this.props.items.map((x) =>
               /*<TagButton 
                 onLongPress={() => this.setState({topLevelview: })}
                 style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
                 title={x} key={x} 
                 onClose={() => {this.onClose && this.onClose(x)}}
                 setDimensions={this.setTagDimensions}/>*/
-                <TouchableWithoutFeedback key={x+"Touch"} onPress={() => {console.log("pressed.."); this.setState({hitElem: x})}}>
-                  <Chip 
-                    style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
-                    key={x} 
-                    //onPress={() => {}}
-                    onClose={() => {this.onClose && this.onClose(x)}}>
-                      {x}
-                  </Chip>
-                </TouchableWithoutFeedback>
+                <Chip 
+                  style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
+                  key={x} 
+                  onPress={() => {}}
+                  onClose={() => this.props.onRemoveItem(x)}>
+                    {x}
+                </Chip>
             )
           }
-          <Portal>
-              {this.state.topLevelView == undefined ? <View/> : this.state.topLevelView}
-          </Portal>
         </View>
       </View>
     );

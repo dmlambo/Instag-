@@ -93,9 +93,11 @@ class TagNodeView extends React.Component {
 
   onAddNode = () => {
     this.props.onAddNode(this.path);
+    this.setState({expanded: true});
   }
 
   onDeleteNode = () => {
+    this.hideDeleteNodeDialog();
     this.props.onDeleteNode(this.path);
   }
 
@@ -103,26 +105,37 @@ class TagNodeView extends React.Component {
     this.setState({deleteNodeDialogVisible: false});
   }
 
+  onHighPriority = () => {
+    this.props.onHighPriority(this.path);
+  }
+
   getUtilityButtons = () => {
     if (this.props.selectionMode) {
+      let opacity = 0.25;
+      let color = null
+      if (this.props.nodeData.highPriority) {
+        opacity = 1.0;
+        color = 'red';
+      }
       return ([
-        <IconButton style={styles.utilityButton} key="1" onPress={() => {}} icon="vertical-align-bottom"/>,
+        <IconButton style={[styles.utilityButton, {opacity}]} key="1" color={color} onPress={this.onHighPriority} icon="priority-high"/>,
         <IconButton style={styles.utilityButton} key="2" onPress={() => {}} icon="vertical-align-top"/>,
+        <IconButton style={styles.utilityButton} key="3" onPress={() => {}} icon="vertical-align-bottom"/>,
       ]);
-  } else {
+    } else {
       return ([
-        <IconButton style={styles.utilityButton} key="3" onPress={() => this.setState({deleteNodeDialogVisible: true})} icon="delete-sweep"/>,
-        <IconButton style={styles.utilityButton} key="4" onPress={this.onAddNode} icon="playlist-add"/>,
-        <IconButton style={styles.utilityButton} key="5" onPress={this.onEditNode} icon="edit"/>,
+        <IconButton style={styles.utilityButton} key="4" onPress={() => this.setState({deleteNodeDialogVisible: true})} icon="delete-sweep"/>,
+        <IconButton style={styles.utilityButton} key="5" onPress={this.onAddNode} icon="playlist-add"/>,
+        <IconButton style={styles.utilityButton} key="6" onPress={this.onEditNode} icon="edit"/>,
       ]);
     }
   }
 
   render() {
     const noTagsText = "No Tags!";
-    var tagsText = this.props.nodeData.data == undefined ? 
-      noTagsText :
-      this.props.nodeData.data.map((x)=>"#" + x).join(" ");
+    var tagsText = this.props.nodeData.data && this.props.nodeData.data.length ? 
+      this.props.nodeData.data.map((x)=>"#" + x).join(" ")
+      : noTagsText;
     var selected = this.props.selectedPredicate(this.path);
     var backgroundColor = selected ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;
 
