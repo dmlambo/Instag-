@@ -2,7 +2,7 @@ import React from 'react';
 import { createStackNavigator } from 'react-navigation';
 
 import { 
-  AsyncStorage,
+  ActivityIndicator,
   Clipboard, 
   Animated, 
   Easing, 
@@ -81,16 +81,6 @@ const testData = {
               data:["bloo", "blah"]}]
   }]}]};
 
-const savedNodeData = async () => {
-  let data = {path: 'root', children: new Array()};
-  try {
-    data = await AsyncStorage.getItem('userDataRoot');
-  } catch(e) {
-    console.log("No user data found! Using empty data.");
-  }
-  return data;
-}
-
 class Root extends React.Component {
   static navigationOptions = ({navigation}) => {
     var selectionMode = navigation.getParam("selectionMode");
@@ -128,18 +118,22 @@ class Root extends React.Component {
       shuffledTags: new Array(),
       selectionState: new Array(),
       shuffle: false,
-      nodeData: {path: 'root', children: new Array()},
+      nodeData: null,
       undoNodeData: testData,
       bottomDockSlideIn: new Animated.Value(0),
       undoSnackBarVisible: false,
     };
 
-    savedNodeData().then((value) => {
-      console.log("Data is " + value);
-      data = JSON.parse(value);
-      if (data && data.path == 'root') {
-        this.setState({nodeData: data});
-      }
+    Settings.getParsedNodeData().then((data) => {
+      this.setState({nodeData: data}, (prev) => {
+        console.log(this.state.nodeData);
+        console.log("did the thing.");
+      });
+    }, (e) => {
+      console.log(e);
+      console.log("Reverting to empty set.");
+      console.log(Settings.InitialData);
+      this.setState({nodeData: Settings.InitialData});
     });
 
   }
@@ -205,7 +199,7 @@ class Root extends React.Component {
     };
     node.children.push(child);
     this.setState({nodeData: newState}, () => {
-      AsyncStorage.setItem('userDataRoot', JSON.stringify(this.state.nodeData));
+      Settings.saveNodeData(this.state.nodeData);
       this.onEditNode(path.concat(child.path))
     });
   }
@@ -220,7 +214,7 @@ class Root extends React.Component {
     })
     parentNode.children.splice(nodeIdx, 1);
     this.setState({nodeData: newState, undoNodeData: this.state.nodeData, undoSnackBarVisible: true}, () => {
-      AsyncStorage.setItem('userDataRoot', JSON.stringify(this.state.nodeData));
+      Settings.saveNodeData(this.state.nodeData);
     });
   }
 
@@ -228,10 +222,13 @@ class Root extends React.Component {
     let oldStateJSON = JSON.stringify(this.state.nodeData);
     let newState = JSON.parse(oldStateJSON);
     let node = this.getNodeByPath(path, newState);
+    if (!node.data) {
+      node.data = new Array();
+    }
     node.data = newItems;
     node.title = title;
     this.setState({nodeData: newState}, () => {
-      AsyncStorage.setItem('userDataRoot', JSON.stringify(this.state.nodeData));
+      Settings.saveNodeData(this.state.nodeData);
     });
   }
 
@@ -256,7 +253,7 @@ class Root extends React.Component {
     }
 
     this.setState({nodeData: newState, selectionState}, () => {
-      AsyncStorage.setItem('userDataRoot', JSON.stringify(this.state.nodeData));
+      Settings.saveNodeData(this.state.nodeData);
       this.shuffleSelection();
     });  
   }
@@ -387,7 +384,6 @@ class Root extends React.Component {
     });
 
     if (this.state.selectionState.length > 0) {
-      let idx = 0;
       Animated.timing(
         this.state.bottomDockSlideIn,
         {
@@ -395,24 +391,6 @@ class Root extends React.Component {
           duration: 250,
           easing: Easing.out(Easing.cubic),
         }).start();
-      return (
-        <Surface style={{elevation: elevateIn, width: '100%', height: slideUp}}>
-          <Paragraph style={{margin: 16}}>
-            {
-              this.state.shuffledTags.length ? this.state.shuffledTags.reduce((acc, x)=> {
-                  idx++;
-                  acc.push(<Paragraph key={idx} style={x.style}>{"#" + x.text + " "}</Paragraph>);
-                  return acc;
-                }, new Array()) : "Selection has no tags!"
-            }
-          </Paragraph>
-          <View style={styles.bottomFabContainer}>
-            <Paragraph>Limit {maxTags}</Paragraph>
-            <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
-            <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
-          </View>
-        </Surface>
-      );
     } else {
       Animated.timing(
         this.state.bottomDockSlideIn,
@@ -421,77 +399,108 @@ class Root extends React.Component {
           duration: 200,
           easing: Easing.out(Easing.cubic),
         }).start();
-      return (
-        <Surface style={{elevation: elevateIn, position: 'absolute', bottom: 0, width: '100%', height: slideUp}}>
-        </Surface>
-      );
-      
     }
+    let idx = 0;
+    return (
+      <Surface style={{opacity: this.state.bottomDockSlideIn, elevation: elevateIn, width: '100%', height: slideUp}}>
+        <Paragraph style={{margin: 16}}>
+          {
+            this.state.shuffledTags.length ? this.state.shuffledTags.reduce((acc, x)=> {
+                idx++;
+                acc.push(<Paragraph key={idx} style={x.style}>{"#" + x.text + " "}</Paragraph>);
+                return acc;
+              }, new Array()) : "Selection has no tags!"
+          }
+        </Paragraph>
+        <View style={styles.bottomFabContainer}>
+          <Paragraph>Limit {maxTags}</Paragraph>
+          <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
+          <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
+        </View>
+      </Surface>
+    );
   }
 
+  getContentView = () => {
+    if (this.state.nodeData != undefined) {
+      return (
+        <View style={StyleSheet.absoluteFill}>
+          <ScrollView>
+            <View style={styles.container}>
+            {
+              this.state.nodeData.children &&
+              this.state.nodeData.children.map((child, idx) =>
+                <TagNodeView
+                  key={idx}
+                  onEditNode={this.onEditNode}
+                  onAddNode={this.onAddNode}
+                  onDeleteNode={this.onDeleteNode}
+                  onNodeSelected={this.onNodeSelected}
+                  onHighPriority={this.onHighPriorityNode}
+                  selectionMode={this.state.selectionState.length > 0}
+                  nodeData={child}
+                  pathForNode={this.createPathForNode}
+                  selectedPredicate={this.selectedPredicate}
+                  parentPath={new Array(this.state.nodeData.path)}/>
+              )
+            }
+            </View>
+            <View style={styles.fabContainer}>
+              {
+                this.state.selectionState.length == 0 &&
+                <FAB icon="add" small onPress={()=>{this.onAddNode(["root"])}}/>
+              }
+            </View>
+          </ScrollView>
+          {
+            this.getSelectionWidget()
+          }
+          <Portal>
+            <Snackbar
+              duration={3000}
+              visible={this.state.undoSnackBarVisible}
+              onDismiss={() => this.setState({ undoSnackBarVisible: false })}
+              action={{
+                label: 'Undo',
+                onPress: () => {
+                  this.setState({nodeData: this.state.undoNodeData, undoSnackBarVisible: false})
+                },
+              }}
+            >
+              Tags deleted
+            </Snackbar>
+            <Snackbar
+              duration={1500}
+              visible={this.state.copiedSnackbarVisible}
+              onDismiss={() => this.setState({copiedSnackbarVisible: false})}
+              action={{
+                label: 'Dismiss',
+                onPress: () => {
+                  this.setState({copiedSnackbarVisible: false}, () => {
+                    Settings.saveNodeData(this.state.nodeData);
+                  })
+                },
+              }}
+            >
+              Tags copied to clipboard!
+            </Snackbar>
+          </Portal>
+        </View>
+      );
+    } else {
+      return (
+        <View style={{justifyContent: 'center'}}>
+          <ActivityIndicator size="large" style={{padding: 32}}/>
+        </View>
+      );
+    }
+  }
   render() {
     return (
       <View style={StyleSheet.absoluteFill}>
-        <ScrollView>
-          <View style={styles.container}>
-          {
-            this.state.nodeData.children &&
-            this.state.nodeData.children.map((child, idx) =>
-              <TagNodeView
-                key={idx}
-                onEditNode={this.onEditNode}
-                onAddNode={this.onAddNode}
-                onDeleteNode={this.onDeleteNode}
-                onNodeSelected={this.onNodeSelected}
-                onHighPriority={this.onHighPriorityNode}
-                selectionMode={this.state.selectionState.length > 0}
-                nodeData={child}
-                pathForNode={this.createPathForNode}
-                selectedPredicate={this.selectedPredicate}
-                parentPath={new Array(this.state.nodeData.title)}/>
-            )
-          }
-          </View>
-          <View style={styles.fabContainer}>
-            {
-              this.state.selectionState.length == 0 &&
-              <FAB icon="add" small onPress={()=>{this.onAddNode(["root"])}}/>
-            }
-          </View>
-        </ScrollView>
-        {
-          this.getSelectionWidget()
-        }
-        <Portal>
-          <Snackbar
-            duration={3000}
-            visible={this.state.undoSnackBarVisible}
-            onDismiss={() => this.setState({ undoSnackBarVisible: false })}
-            action={{
-              label: 'Undo',
-              onPress: () => {
-                this.setState({nodeData: this.state.undoNodeData, undoSnackBarVisible: false})
-              },
-            }}
-          >
-            Tags deleted
-          </Snackbar>
-          <Snackbar
-            duration={1500}
-            visible={this.state.copiedSnackbarVisible}
-            onDismiss={() => this.setState({ copiedSnackbarVisible: false })}
-            action={{
-              label: 'Dismiss',
-              onPress: () => {
-                this.setState({nodeData: this.state.undoNodeData, copiedSnackbarVisible: false}, () => {
-                  AsyncStorage.setItem('userDataRoot', JSON.stringify(this.state.nodeData));
-                })
-              },
-            }}
-          >
-            Tags copied to clipboard!
-          </Snackbar>
-        </Portal>
+      {
+        this.getContentView()
+      }
       </View>
     );
   }

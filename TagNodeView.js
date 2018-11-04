@@ -153,20 +153,20 @@ class TagNodeView extends React.Component {
           onLongPress={this.onLongPress}
           style={[...StyleSheet.absoluteFillObject, {borderRadius: 4}]}>
           <View>
-          <Portal>
-                <Dialog
-                  visible={this.state.deleteNodeDialogVisible}
-                  onDismiss={this.hideDeleteNodeDialog}>
-                  <Dialog.Title>Warning</Dialog.Title>
-                  <Dialog.Content>
-                    <Paragraph>Are you sure you want to delete {this.props.nodeData.title}?</Paragraph>
-                  </Dialog.Content>
-                  <Dialog.Actions>
-                    <Button onPress={this.hideDeleteNodeDialog}>Cancel</Button>
-                    <Button onPress={this.onDeleteNode}>Delete</Button>
-                  </Dialog.Actions>
-                </Dialog>
-              </Portal>
+            <Portal>
+              <Dialog
+                visible={this.state.deleteNodeDialogVisible}
+                onDismiss={this.hideDeleteNodeDialog}>
+                <Dialog.Title>Warning</Dialog.Title>
+                <Dialog.Content>
+                  <Paragraph>Are you sure you want to delete {this.props.nodeData.title}?</Paragraph>
+                </Dialog.Content>
+                <Dialog.Actions>
+                  <Button onPress={this.hideDeleteNodeDialog}>Cancel</Button>
+                  <Button onPress={this.onDeleteNode}>Delete</Button>
+                </Dialog.Actions>
+              </Dialog>
+            </Portal>
 
             <View style={styles.titleBar}>
               <TouchableOpacity onPress={() => this.setState({expanded: !this.state.expanded})}>
