@@ -85,7 +85,9 @@ class Root extends React.Component {
       undoSnackBarVisible: false,
     };
 
+    console.log("Fetching user data...");
     Settings.getParsedNodeData().then((data) => {
+      console.log("Loaded user data");
       this.setState({nodeData: data});
     }, (e) => {
       console.log(e);

@@ -13,8 +13,8 @@ import { Provider as PaperProvider, DefaultTheme, FAB, Title } from 'react-nativ
 
 // WARNING: This breaks things. Causes issues with visibility and TextViews.
 // Provides CALayer-style implicit animation
-UIManager.setLayoutAnimationEnabledExperimental &&
-  UIManager.setLayoutAnimationEnabledExperimental(true);
+//UIManager.setLayoutAnimationEnabledExperimental &&
+//  UIManager.setLayoutAnimationEnabledExperimental(true);
 
 const DrawerComponent = (props) => (
   <SafeAreaView forceInset={{ top: 'always', horizontal: 'never' }}>

@@ -126,12 +126,17 @@ export default class TagEditModal extends React.Component {
     }
   }
 
+  onReorderItems = (items, callback) => {
+    // We're going to trust that the items are all there. Right?
+    this.setState({items}, callback);
+  };
+
   render() {
     return (
       // BUG! https://github.com/facebook/react-native/issues/13754
       // View doesn't go back to its original size.
       <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="height" keyboardVerticalOffset={75}>
-        <TagContainer items={this.state.items} onRemoveItem={this.onRemove}/>
+        <TagContainer items={this.state.items} onRemoveItem={this.onRemove} onReorderItems={this.onReorderItems}/>
         <FAB
           style={styles.fab}
           icon="add"

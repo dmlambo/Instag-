@@ -1,60 +1,34 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, TouchableWithoutFeedback } from 'react-native';
-import Icon from 'react-native-vector-icons/Entypo';
+import PropTypes from 'prop-types';
 
-// Local Imports
-import * as CommonStyles from './styles/common'
+import React from 'react';
+import { View } from 'react-native';
 
 "use strict";
 
-export default class TagButton extends React.Component {
-    onLayout = (nativeEvent) => {
-        if (this.element != undefined) {
-            console.log("Measuring tag");
-            this.element.measure(this.onMeasure);
-        } else {
-            console.log("No reference to tag");
-        }
-    }
+export default class MeasuredView extends React.Component {
+	static propTypes = {
+		setDimensions: PropTypes.func.isRequired,
+	}
 
-    onMeasure = (x, y, width, height, screenX, screenY) => {
-        this.props.setDimensions(this.props.title, screenX, screenY, width, height);
-    };
+	onLayout = (nativeEvent) => {
+		if (this.element != undefined) {
+			setTimeout(() => {
+				this.element.measureInWindow(this.onMeasure);
+			}, 300); // Animations. Ugh.
+		} else {
+			console.log("No reference to tag");
+		}
+	};
 
-    render() {
-        return (
-        <View
-            {...this.props}
-            collapsable={false}
-            onLayout={this.props.setDimensions && this.onLayout}>
-            <View style={styles.buttonContainer} ref={element => this.element = element}>
-            <TouchableOpacity onPress={() => {this.props.onClose && this.props.onClose()}}>
-                <Icon style={styles.cancelButton} name="circle-with-cross"/>
-            </TouchableOpacity>
-            <View>
-                <Text style={styles.buttonText}>{this.props.title}</Text>
-            </View>
-            </View>
-        </View>
-        );
-    }
-}
+	onMeasure = (x, y, width, height) => {
+		this.props.setDimensions(this.props.tag, x, y, width, height);
+	};
 
-const styles = StyleSheet.create({
-    buttonContainer: {
-        backgroundColor: '#aff',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        borderRadius: CommonStyles.BUTTON_CANCEL_SIZE,
-        height: CommonStyles.BUTTON_HEIGHT,
-        margin: CommonStyles.BUTTON_MARGIN,
-    },
-    buttonText: {
-        fontSize: CommonStyles.BUTTON_TEXT_SIZE,
-        paddingLeft: CommonStyles.BUTTON_PADDING,
-        paddingRight: CommonStyles.BUTTON_PADDING,
-    },
-    cancelButton: {
-        fontSize: CommonStyles.BUTTON_CANCEL_SIZE,
-    }
-});
+	render() {
+		return (
+			<View {...this.props} onLayout={this.onLayout} ref={x => this.element = x}>
+				{this.props.children}
+			</View>
+		);
+	}
+};

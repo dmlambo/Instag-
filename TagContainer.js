@@ -1,15 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableWithoutFeedback, PanResponder, Animated, Easing, TextInput } from 'react-native';
+import { StyleSheet, View, StatusBar, PanResponder, Animated, Easing, TextInput } from 'react-native';
 
 // Local imports
-import TagButton from './TagButton';
-import * as CommonStyles from './styles/common'
+import MeasuredView from './TagButton';
 
-// 3rd Party Imports
-import Icon from 'react-native-vector-icons/Entypo';
-
+//import { SafeAreaView } from 'react-navigation';
 // Paper
-import { DefaultTheme, Portal, Chip, TouchableRipple, Surface, withTheme } from "react-native-paper";
+import { DefaultTheme, Portal, Chip, withTheme } from "react-native-paper";
 
 "use strict";
 
@@ -21,12 +18,12 @@ class TagContainer extends React.Component {
     
     // temp
     this.state = {
-      items: this.props.items,
       panX: new Animated.Value(0),
       panY: new Animated.Value(0),
       dragElem: undefined,
       hitElem: undefined,
       topLevelView: undefined,
+      caret: undefined,
     };
     this.tagPositions = {};
 
@@ -41,16 +38,19 @@ class TagContainer extends React.Component {
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         // Ugh. The gesture responder chain is all sorts of inadequate.
         // Just deal with this later.
-        return false;
         var dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
-        return dist > 16;
+        return (
+          this.state.hitElem != undefined && 
+          this.tagPositions[this.state.hitElem] != undefined && 
+          dist > 16 
+        );
       },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => false,
       onPanResponderGrant: (evt, gestureState) => {
         // gestureState.d{x,y} will be set to zero now
         console.log("Granted...");
 
-        var idx = this.state.items.indexOf(this.state.hitElem);
+        var idx = this.props.items.indexOf(this.state.hitElem);
 
         // Bind values
         var x = evt.nativeEvent.pageX;
@@ -58,9 +58,9 @@ class TagContainer extends React.Component {
 
         console.log("Index of " + this.state.hitElem + " is " + idx);
 
-        this.setState({dragElem: this.state.hitElem, items:this.state.items, fingerX: 0, fingerY: 0},
+        this.setState({dragElem: this.state.hitElem, items:this.props.items, fingerX: 0, fingerY: 0},
         () => {
-          var tagPosition = {width: 100, height: 32}; //this.tagPositions[this.state.dragElem];
+          var tagPosition = this.tagPositions[this.state.dragElem];
           var tagXOffset = new Animated.Value(-tagPosition.width / 2);
           var tagYOffset = new Animated.Value(-tagPosition.height / 2);
           this.state.panX.setValue(x);
@@ -99,21 +99,19 @@ class TagContainer extends React.Component {
             ])
           ).start();
 
-          var tagPosition = this.tagPositions[this.state.dragElem];
-
-          var position = {width: 100, height: 32};// this.tagPositions[this.state.dragElem];
           var dragItem =             
             this.state.dragElem &&
-              <AnimatedChip style={[
-                styles.tag,
-                {
-                  transform: [{scaleX: expand}, {scaleY: expand}],
-                  position: 'absolute',
-                  left: Animated.add(this.state.panX, tagXOffset),
-                  top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
-                  width: position.width,
-                  height: position.height,
-              }]} title={this.state.dragElem}/>
+              <AnimatedChip 
+                onClose={() => {}}
+                style={[
+                  styles.tag,
+                  {
+                    transform: [{scaleX: expand}, {scaleY: expand}],
+                    position: 'absolute',
+                    left: Animated.add(this.state.panX, tagXOffset),
+                    top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
+                    margin: 0,
+              }]}>{this.state.dragElem}</AnimatedChip>
 
           // TODO: Is this OK?
           this.setState({topLevelView: dragItem});
@@ -123,25 +121,39 @@ class TagContainer extends React.Component {
         {nativeEvent: {pageX: this.state.panX, pageY: this.state.panY}, }, 
         null],
         {listener: (evt, gestureState) => {
-          var {closest, side} = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
-          if (closest != this.state.dragElem) {
-            var idx = this.state.items.indexOf(this.state.dragElem);
-            this.state.items.splice(idx, 1);
-            idx = this.state.items.indexOf(closest);
-            this.state.items.splice(idx+side, 0, this.state.dragElem);
-            this.setState({...this.state});
+          var swapTag = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          let y = this.tagPositions[swapTag.closest].centerY;
+          let x = this.tagPositions[swapTag.closest].centerX - 2;
+          let caret = {x, y};
+
+          if (caret === this.state.caret && swapTag == this.state.swapTag) {
+            return;
           }
+          this.setState({caret, swapTag});
         }}
       ),
       onPanResponderTerminationRequest: (evt, gestureState) => true,
       onPanResponderRelease: (evt, gestureState) => {
         console.log("Release...");
 
+        let {closest, side} = this.state.swapTag;
+
+        if (closest != this.state.dragElem) {
+          let items = this.props.items.slice(0);
+          var idx = items.indexOf(this.state.dragElem);
+          items.splice(idx, 1);
+          let closestIdx = items.indexOf(closest);
+          items.splice(closestIdx+side, 0, this.state.dragElem);
+          this.props.onReorderItems(items);
+        }
+
         this.setState({
           dragElem: undefined, 
           hitElem: undefined,
           closest: undefined, 
           topLevelView: undefined,
+          swapTag: undefined,
+          caret: undefined,
         });
         // Gesture succeeded, so figure out where to put it in the list.
       },
@@ -152,46 +164,31 @@ class TagContainer extends React.Component {
           hitElem: undefined,
           closest: undefined, 
           topLevelView: undefined,
+          swapTag: undefined,
+          caret: undefined,
         });
         // Gesture was cancelled for some reason, replace the tag where it started.
       },
     });
   }
 
-  onLayout = (nativeEvent) => {
-    if (this.element != undefined) {
-        console.log("Measuring tag");
-        this.element.measure(this.onMeasure);
-    } else {
-        console.log("No reference to tag");
-    }
-  }
-
-  setTagDimensions = (tag, screenX, screenY, width, height) => {
+  setTagDimensions = (tag, x, y, width, height) => {
     // TODO: Padding and margins don't stack on the edges of the
     // buttons, so we need a smarter fat-fingers test.
-    var centerX = screenX + width / 2.0;
-    var centerY = screenY + height / 2.0; 
+    if (StatusBar.currentHeight) {
+      y += StatusBar.currentHeight;
+    }
+
+    var centerX = x;// + width / 2.0;
+    var centerY = y;// + height / 2.0; 
 
     //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
-    this.tagPositions[tag] = {centerX, centerY, screenX, screenY, width, height};
-  }
-
-  hitTest = (screenX, screenY) => {
-    //console.log("Hit test at " + screenX + ", " + screenY);
-    for (var key in this.tagPositions) {
-      var val = this.tagPositions[key];
-      if (screenX >= val.screenX && screenY >= val.screenY &&
-          screenX <= (val.screenX + val.width) && screenY <= (val.screenY + val.height)) {
-            return key;
-          }
-    }
-    return undefined;
+    this.tagPositions[tag] = {x, y, centerX, centerY, width, height, upToDate: true};
   }
 
   closestTest = (screenX, screenY) => {
 /* Following code is a RTL-text-style search that finds the closest line
-   first, and then the closest tag within that line, much like the carat
+   first, and then the closest tag within that line, much like the caret
    positioning on Android/iOS.
     var lastY = -1;
     var lines = [];
@@ -241,10 +238,13 @@ class TagContainer extends React.Component {
     var closest = "";
     var side = 0;
 
+    // offset Y so we can more easily see where it's being dropped
+    let safeScreenY = screenY - 70;
+
     for (var key in this.tagPositions) {
       var val = this.tagPositions[key];
       var distX = val.centerX - screenX;
-      var distY = val.centerY - screenY;
+      var distY = val.centerY - safeScreenY;
       var dist = Math.sqrt(distX * distX + distY * distY);
 
       if (dist < closestTag) {
@@ -267,22 +267,32 @@ class TagContainer extends React.Component {
         <View style={styles.flextainer}>
           {
             this.props.items && this.props.items.map((x, idx) =>
-              /*<TagButton 
-                onLongPress={() => this.setState({topLevelview: })}
-                style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
-                title={x} key={x} 
-                onClose={() => {this.onClose && this.onClose(x)}}
-                setDimensions={this.setTagDimensions}/>*/
-                <Chip 
-                  style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
-                  key={idx}
-                  onPress={() => {}}
+              <MeasuredView 
+                  onStartShouldSetResponder={() => {this.setState({hitElem: x}); return true;}}
+                  key={idx} setDimensions={this.setTagDimensions} tag={x}>
+                <Chip
+                  style={[styles.tag, this.state.dragElem === x && styles.movingTag]} 
+                  responder={() => {}}
                   onClose={() => this.props.onRemoveItem(x)}>
                     {x}
                 </Chip>
+              </MeasuredView>
             )
           }
         </View>
+        <Portal>
+          {this.state.topLevelView}
+          { this.state.caret && <View
+              style={{position: 'absolute',
+              top: this.state.caret.y,
+              left: this.state.caret.x,
+              width: 4,
+              height: 36,
+              backgroundColor: DefaultTheme.colors.accent,
+              borderRadius: 2,
+              opacity: 0.5,
+          }}/> }
+        </Portal>
       </View>
     );
   }
@@ -290,10 +300,7 @@ class TagContainer extends React.Component {
 
 const styles = StyleSheet.create({
   movingTag: {
-    backgroundColor: '#44d',
-    opacity: 0.1,
-    margin: 3,
-    height: 32,
+    opacity: 0.25,
   },
   tag: {
     backgroundColor: '#fff',
