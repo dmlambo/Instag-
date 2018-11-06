@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { View, AsyncStorage, Clipboard } from 'react-native';
+import { View, AsyncStorage, Clipboard, Picker } from 'react-native';
 
 // Paper
 import { 
@@ -10,7 +10,7 @@ import {
   Portal, 
   List, 
   Appbar, 
-  Snackbar } from 'react-native-paper';
+  Snackbar, } from 'react-native-paper';
 
 // TODO: MobX
 // XXX: We're counting on the destruction of the home screen to reload our user data
@@ -22,11 +22,34 @@ export default class Settings extends React.Component {
       clearDataConfirmVisible: false,
       clearDataSnackbarVisible: false,
       snackbarMessage: "",
+      copyLimit: 30,
     };
+
+    Settings.getSavedPreferences().then((data) => {
+      this.setState(data);
+    })
   }
   
   static InitialData = {path: 'root', children: new Array()};
   static NodeDataKey = 'userDataRoot';
+  static PreferencesKey = 'preferences';
+
+  static getSavedPreferences = async () => {
+    let storedPreferences = await AsyncStorage.getItem(Settings.PreferencesKey);
+    if (storedPreferences == null) {
+      return {copyLimit: 30};
+    }
+    return JSON.parse(storedPreferences);
+  }
+
+  static savePreferences = async (data) => {
+    try {
+      await AsyncStorage.setItem(Settings.PreferencesKey, JSON.stringify(data));
+    } catch (e) {
+      console.error("Error saving preferences data:");
+      console.error(e);
+    }
+  }
 
   static getSavedNodeData = async () => {
     return await AsyncStorage.getItem(Settings.NodeDataKey);
@@ -114,6 +137,7 @@ export default class Settings extends React.Component {
   }
 
   render() {
+
     return (
       <View>
         <Appbar.Header>
@@ -121,9 +145,27 @@ export default class Settings extends React.Component {
             title="Settings"
           />
           <Appbar.BackAction
-            onPress={this._goBack}
+            onPress={() => this.props.navigation.goBack()}
           />
         </Appbar.Header>
+        <List.Section title="Options">
+        <List.Item
+          title="Item copy limit"
+          right={() => 
+            <Picker
+              selectedValue={this.state.copyLimit}
+              style={{ height: 30, width: 100 }}
+              onValueChange={(itemValue) => {
+                let preferences = {copyLimit: itemValue};
+                this.setState(preferences);
+                Settings.savePreferences(preferences); // ModX!
+              }}>
+              <Picker.Item label="30" value="30" />
+              <Picker.Item label="60" value="60" />
+              <Picker.Item label="Unlimited" value="0" />
+            </Picker>            
+          } />
+        </List.Section>
         <List.Section title="Import/Export Tags">
           <List.Item 
             left={() => <List.Icon icon="assignment" />} 

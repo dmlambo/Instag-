@@ -266,7 +266,7 @@ class TagContainer extends React.Component {
       <View style={[styles.container, this.props.style]} {...this._panResponder.panHandlers}>
         <View style={styles.flextainer}>
           {
-            this.props.items && this.props.items.map((x) =>
+            this.props.items && this.props.items.map((x, idx) =>
               /*<TagButton 
                 onLongPress={() => this.setState({topLevelview: })}
                 style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
@@ -275,7 +275,7 @@ class TagContainer extends React.Component {
                 setDimensions={this.setTagDimensions}/>*/
                 <Chip 
                   style={this.state.dragElem === x ? styles.movingTag : styles.tag} 
-                  key={x} 
+                  key={idx}
                   onPress={() => {}}
                   onClose={() => this.props.onRemoveItem(x)}>
                     {x}

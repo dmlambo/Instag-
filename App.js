@@ -34,18 +34,28 @@ let RootNavigator = createDrawerNavigator({
     screen: Settings
   }
 }, {
-  contentComponent: DrawerComponent
+  contentComponent: DrawerComponent,
 });
-  
+
 export default class App extends React.Component {
   constructor(props) {
     super(props);
+
+    this.state = {
+      drawerLocked: false
+    }
+  }
+
+  // BUG: https://github.com/react-navigation/react-navigation/issues/4201
+  // Fix is in an alpha release, but not a stable release.
+  setDrawerLock = (drawerLocked) => {
+    this.setState({drawerLocked});
   }
 
   render() {
     return (
       <PaperProvider theme={DefaultTheme}>
-        <RootNavigator/>
+        <RootNavigator screenProps={{setDrawerLock: this.setDrawerLock, drawerLockMode: this.state.drawerLocked ? 'locked-closed' : 'unlocked'}}/>
       </PaperProvider>
     );
   }

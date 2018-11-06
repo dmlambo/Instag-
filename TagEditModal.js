@@ -59,14 +59,45 @@ export default class TagEditModal extends React.Component {
   // Not interested in the text, back button pressed.
   onRequestModalClose = () => {
     this.setState({...this.state, editModalVisible: false});
-  };  
+  };
+
+  stringToItems = (text) => {
+    let trimText = text.trim().replace(/\#/g, '');
+    if (!trimText) {
+      return new Array();
+    }
+    return trimText.split(" ");
+  }
+
+  intersectItems = (items, compareItems) => {
+    return items.reduce((acc, item) => {
+      let lowerItem = item.toLowerCase();
+      if (compareItems.find(x => { return lowerItem === x.toLowerCase()})) {
+        acc.intersection.push(item);
+      } else {
+        acc.unique.push(item);
+      }
+      return acc;
+    }, {intersection: new Array(), unique: new Array()});
+  }
 
   onAdd = (text) => {
-    let items = text.replace(/\#/g, '').split(" ");
-    console.log("Adding " + items.map(x => "#" + x).join(' '));
+    let items = this.stringToItems(text);
+    let uniqueItems = items.reduce((acc, item) => {
+      let lowerItem = item.toLowerCase();
+      if (!acc.find(x => { return lowerItem === x.toLowerCase()})) {
+        acc.push(item);
+      }
+      return acc;
+    }, new Array());
+    let intersectionSet = this.state.items ? this.state.items : new Array();
+    let intersection = this.intersectItems(uniqueItems, intersectionSet);
+
+    console.log("Adding " + intersection.unique.map(x => "#" + x).join(' '));
     var newItems = this.state.items ? this.state.items.slice(0) : new Array();
-    newItems = newItems.concat(items);
+    newItems = newItems.concat(intersection.unique);
     this.setState({items: newItems, editModalVisible: false})
+    return true;
   }
 
   onRemove = (text) => {
@@ -78,13 +109,21 @@ export default class TagEditModal extends React.Component {
   }
 
   onFilterText = (text) => {
-    if (text == "") {
-      return "Enter hashtag";
+    let items = this.stringToItems(text);
+    let intersectionSet = this.state.items ? this.state.items : new Array();
+    let intersection = this.intersectItems(items, intersectionSet);
+    switch (intersection.intersection.length) {
+      case 0:
+        if (intersection.unique.length) {
+          return undefined;
+        } else {
+          return "Enter hashtag";
+        }
+      case 1: 
+        return "Hashtag " + intersection.intersection + " already in the list";
+      default:
+        return "Hashtags already in the list: " + intersection.intersection.join(', ');
     }
-    if (this.state.items && this.state.items.indexOf(text) != -1) {
-      return "Hashtag already in the list";
-    }
-    return undefined;
   }
 
   render() {

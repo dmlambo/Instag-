@@ -1,5 +1,5 @@
 import React from 'react';
-import { createStackNavigator } from 'react-navigation';
+import { SafeAreaView, createStackNavigator } from 'react-navigation';
 
 import { 
   ActivityIndicator,
@@ -10,7 +10,8 @@ import {
   LayoutAnimation, 
   BackHandler, 
   ScrollView, 
-  View } from 'react-native';
+  View,
+} from 'react-native';
 
 
 // Local imports
@@ -31,8 +32,7 @@ import {
 
 "use strict";
 
-// TODO: Save in preferences.
-let maxTags = 5;
+let maxTags = 0;
 
 function random32bit() {
   // Use pseudorandom, the odds of colliding paths is tiny.
@@ -41,53 +41,15 @@ function random32bit() {
   return '00000000'.slice(str.length) + str;
 }
 
-// TODO: My kingdom for type checking. Look into Flow.
-const testData = {
-  path: "root",
-  title: "root",
-  children: [
-    {
-      path: random32bit(),
-      title: "One!",
-      data: ["lorem", "ipsum", "ipsum2", "ipsum5", "ipsum6", "ipsum12", "ipsum123"],
-      children: [
-        {
-          path: random32bit(),
-          title: "SubOne", 
-          data:["dolor", "amet"], 
-          children: [
-            {
-              title: "SubSubOne", 
-              data:["dolor", "amet"], 
-              children: [{title: "har"}]}]
-        },
-        {
-          path: random32bit(),
-          title: "SubTwo", 
-          data:["dolor", "amet"],
-          children: [
-            {
-              path: random32bit(),
-              title: "SubSubTwo", 
-              data:["bloo", "blah"]}]
-        },{
-          path: random32bit(),
-          title: "SubThree", 
-          data:["dolor", "amet"],
-          children: [
-            {
-              path: random32bit(),
-              title: "SubSubThree", 
-              data:["bloo", "blah"]}]
-  }]}]};
-
 class Root extends React.Component {
   static navigationOptions = ({navigation}) => {
     var selectionMode = navigation.getParam("selectionMode");
     var backgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface; 
     var cancelSelection = navigation.getParam("cancelSelection");
     var title = selectionMode ? "Select Tags" : "Tags";
+    let drawerLockMode = selectionMode ? 'locked-closed' : 'unlocked';  
     return ({
+      drawerLockMode,
       headerStyle: {
         backgroundColor,
       },
@@ -97,7 +59,6 @@ class Root extends React.Component {
           <IconButton icon="cancel" size={30} onPress={cancelSelection}/> :
           <IconButton icon="menu" size={32} onPress={navigation.openDrawer}/>
       )
-      
     });
   };
 
@@ -119,16 +80,13 @@ class Root extends React.Component {
       selectionState: new Array(),
       shuffle: false,
       nodeData: null,
-      undoNodeData: testData,
+      undoNodeData: null,
       bottomDockSlideIn: new Animated.Value(0),
       undoSnackBarVisible: false,
     };
 
     Settings.getParsedNodeData().then((data) => {
-      this.setState({nodeData: data}, (prev) => {
-        console.log(this.state.nodeData);
-        console.log("did the thing.");
-      });
+      this.setState({nodeData: data});
     }, (e) => {
       console.log(e);
       console.log("Reverting to empty set.");
@@ -136,6 +94,9 @@ class Root extends React.Component {
       this.setState({nodeData: Settings.InitialData});
     });
 
+    Settings.getSavedPreferences().then((data) => {
+      maxTags = data.copyLimit; // ModX!
+    });
   }
 
   handleBack = () => {
@@ -154,6 +115,7 @@ class Root extends React.Component {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     this.setState({selectionState: new Array()}, () => {
       this.shuffleSelection();
+      this.props.screenProps.setDrawerLock(false);
       this.props.navigation.setParams({selectionMode: false})
     });
   }
@@ -181,6 +143,7 @@ class Root extends React.Component {
   onEditNode = (path) => {
     console.log("Path is: " + path);
     let node = this.getNodeByPath(path.slice(0), this.state.nodeData);
+    this.props.screenProps.setDrawerLock(true);
     this.props.navigation.push("Edit", {...node, path, onSubmitted: this.onEditSubmitted});
   }
   
@@ -194,7 +157,7 @@ class Root extends React.Component {
     }
     let child = {
       path: random32bit(),
-      title: "New Section",
+      title: "",
       children: [],
     };
     node.children.push(child);
@@ -229,6 +192,7 @@ class Root extends React.Component {
     node.title = title;
     this.setState({nodeData: newState}, () => {
       Settings.saveNodeData(this.state.nodeData);
+      this.props.screenProps.setDrawerLock(false);
     });
   }
 
@@ -275,8 +239,10 @@ class Root extends React.Component {
     }
 
     this.setState({selectionState}, () => {
+      let selectionMode = this.state.selectionState.length;
       this.shuffleSelection();
-      this.props.navigation.setParams({selectionMode: this.state.selectionState.length})
+      this.props.screenProps.setDrawerLock(selectionMode);
+      this.props.navigation.setParams({selectionMode})
     });
   }
 
@@ -364,7 +330,11 @@ class Root extends React.Component {
   }
 
   copyTags = () => {
-    let tagsString = this.state.shuffledTags.slice(0, maxTags).reduce((acc, x) => {
+    let firstNTags = this.state.shuffledTags;
+    if (maxTags) {
+      firstNTags = firstNTags.slice(0, maxTags);
+    }
+    let tagsString = firstNTags.reduce((acc, x) => {
       return acc + "#" + x.text + " ";
     }, "");
     console.log("Copying to clipboad:");
@@ -374,6 +344,18 @@ class Root extends React.Component {
   }
 
   getSelectionWidget = () => {
+    let quotaNode = <View/>
+    let quota = this.state.shuffledTags.length;
+    if (maxTags != 0) {
+      if (quota > maxTags) {
+        quota = maxTags;
+      }
+      let quotaStyle = {};
+      if (quota == maxTags) {
+        quotaStyle = {color: '#3f3'};
+      }
+      quotaNode = <Paragraph style={quotaStyle}>{quota}<Paragraph>/{maxTags}</Paragraph></Paragraph>
+    }
     let slideUp = this.state.bottomDockSlideIn.interpolate({
       inputRange: [0, 1],
       outputRange: [0, 180],
@@ -413,7 +395,7 @@ class Root extends React.Component {
           }
         </Paragraph>
         <View style={styles.bottomFabContainer}>
-          <Paragraph>Limit {maxTags}</Paragraph>
+          {quotaNode}
           <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
           <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
         </View>
@@ -431,6 +413,7 @@ class Root extends React.Component {
               this.state.nodeData.children &&
               this.state.nodeData.children.map((child, idx) =>
                 <TagNodeView
+                  style={{margin: 4}}
                   key={idx}
                   onEditNode={this.onEditNode}
                   onAddNode={this.onAddNode}
@@ -497,11 +480,11 @@ class Root extends React.Component {
   }
   render() {
     return (
-      <View style={StyleSheet.absoluteFill}>
+      <SafeAreaView style={{flex: 1}}>
       {
         this.getContentView()
       }
-      </View>
+      </SafeAreaView>
     );
   }
 }

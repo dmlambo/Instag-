@@ -1,6 +1,11 @@
 import React from 'react';
-import { StyleSheet, LayoutAnimation, View, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Entypo';
+import { 
+  StyleSheet, 
+  LayoutAnimation, 
+  View, 
+  TouchableWithoutFeedback } from 'react-native';
+
+import PropTypes from 'prop-types';
 
 // Paper
 import { 
@@ -23,6 +28,13 @@ import {
 // expanded, edited, and selected.
 // TODO: Serialization
 class TagNodeView extends React.Component {
+  static propTypes = {
+    selectedColor: PropTypes.string,
+  };
+  static defaultProps = {
+    selectedColor: DefaultTheme.colors.accent,
+  };
+
   constructor(props) {
     super(props);
 
@@ -30,18 +42,6 @@ class TagNodeView extends React.Component {
 
     this.state = {
       expanded: false,
-    }
-  }
-
-  getExpandView = () => {
-    if (this.state.expanded) {
-      return (
-        <Icon style={styles.titleBarExpand} name="chevron-thin-down"/>
-      );
-    } else {
-      return (
-        <Icon style={styles.titleBarExpand} name="chevron-thin-right"/>
-      )
     }
   }
 
@@ -132,12 +132,18 @@ class TagNodeView extends React.Component {
   }
 
   render() {
-    const noTagsText = "No Tags!";
-    var tagsText = this.props.nodeData.data && this.props.nodeData.data.length ? 
-      this.props.nodeData.data.map((x)=>"#" + x).join(" ")
-      : noTagsText;
+    var hasData = this.props.nodeData.data && this.props.nodeData.data.length > 0;
+    var tagsText = hasData && this.props.nodeData.data.map((x)=>"#" + x).join(" ");
     var selected = this.props.selectedPredicate(this.path);
-    var backgroundColor = selected ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;
+    var backgroundColor = selected ? this.props.selectedColor : this.props.style.backgroundColor;
+    var expandable = this.props.nodeData.children && this.props.nodeData.children.length > 0;
+    var defaultAction = () => {};
+    
+    if (this.props.selectionMode) {
+      defaultAction = this.onLongPress;
+    } else if (expandable) {
+      defaultAction =this.onExpandPress
+    }
 
     // |ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ|    |ˉˉˉˉˉˉˉˉˉˉˉˉˉ|
     // | >               Title               ... | -> | Add Section |
@@ -146,10 +152,10 @@ class TagNodeView extends React.Component {
     // | --------------------------------------- :
     // ( Everything under is another TagNodeView )
     return (
-      <Surface style={[styles.container, this.props.style, {backgroundColor}]}>
+      <Surface style={[styles.container, this.props.style, backgroundColor && {backgroundColor}]}>
         <TouchableRipple 
           borderless 
-          onPress={this.props.selectionMode ? this.onLongPress : this.onExpandPress} 
+          onPress={defaultAction} 
           onLongPress={this.onLongPress}
           style={[...StyleSheet.absoluteFillObject, {borderRadius: 4}]}>
           <View>
@@ -169,13 +175,23 @@ class TagNodeView extends React.Component {
             </Portal>
 
             <View style={styles.titleBar}>
-              <TouchableOpacity onPress={() => this.setState({expanded: !this.state.expanded})}>
-                { this.getExpandView(this.state.expanded) }
-              </TouchableOpacity>
-              <Title style={styles.titleBarText}>{this.props.nodeData.title}</Title>
+              {
+                expandable && 
+                <IconButton 
+                  style={styles.utilityButton}
+                  onPress={this.onExpandPress}
+                  icon={this.state.expanded ? "keyboard-arrow-down" : "chevron-right"}/>
+              }
+              <Title style={[styles.titleBarText, {opacity: this.props.nodeData.title ? 1.0 : 0.5}]}>
+                {this.props.nodeData.title || "Untitled"}
+                {
+                  expandable && 
+                  <Title style={{color: '#f005', fontSize: 12}}> +{this.props.nodeData.children.length}</Title>
+                }
+              </Title>
               { this.getUtilityButtons() }
             </View>
-            <Paragraph style={styles.tagsText}>{tagsText}</Paragraph>
+            { hasData && <Paragraph style={styles.tagsText}>{tagsText}</Paragraph> }
             <View>
               { 
                 this.getContentView(this.state.expanded) 
@@ -190,13 +206,11 @@ class TagNodeView extends React.Component {
 
 const styles = StyleSheet.create({
   container: {
-    margin: 8, 
     elevation: 4, 
-    borderRadius: 4, 
-    paddingBottom: 8, 
+    borderRadius: 4,
+    backgroundColor: DefaultTheme.colors.surface, 
   },
   titleBar: {
-    height: 50,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
