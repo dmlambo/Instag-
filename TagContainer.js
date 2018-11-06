@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, View, StatusBar, PanResponder, Animated, Easing, TextInput } from 'react-native';
 
 // Local imports
-import MeasuredView from './TagButton';
+import MeasuredView from './MeasuredView';
 
 //import { SafeAreaView } from 'react-navigation';
 // Paper
@@ -179,8 +179,8 @@ class TagContainer extends React.Component {
       y += StatusBar.currentHeight;
     }
 
-    var centerX = x;// + width / 2.0;
-    var centerY = y;// + height / 2.0; 
+    var centerX = x + width / 2.0;
+    var centerY = y + height / 2.0; 
 
     //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
     this.tagPositions[tag] = {x, y, centerX, centerY, width, height, upToDate: true};
