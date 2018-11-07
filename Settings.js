@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { 
+  BackHandler,
   ScrollView,
   View, 
   AsyncStorage, 
@@ -23,6 +24,8 @@ import {
 export default class Settings extends React.Component {
   constructor(props) {
     super(props);
+
+    this.backSubscription = BackHandler.addEventListener('hardwareBackPress', this.handleBack)
 
     this.state = {
       clearDataConfirmVisible: false,
@@ -83,6 +86,11 @@ export default class Settings extends React.Component {
     if (!jsonData || jsonData.path != 'root') {
       throw new Error("User data malformed!");
     }
+  }
+
+  handleBack = () => {
+    this.props.navigation.replace("Root");
+    return true;
   }
 
   copyNodeData = () => {
