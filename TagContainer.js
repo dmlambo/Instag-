@@ -122,8 +122,14 @@ class TagContainer extends React.Component {
         null],
         {listener: (evt, gestureState) => {
           var swapTag = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
-          let y = this.tagPositions[swapTag.closest].centerY;
-          let x = this.tagPositions[swapTag.closest].centerX - 2;
+          let tagPosition = this.tagPositions[swapTag.closest];
+          let x = tagPosition.x - 2;
+          let y = tagPosition.y;
+
+          if (swapTag.side) {
+            x += tagPosition.width;
+          }
+
           let caret = {x, y};
 
           if (caret === this.state.caret && swapTag == this.state.swapTag) {
@@ -250,7 +256,7 @@ class TagContainer extends React.Component {
       if (dist < closestTag) {
         closestTag = dist;
         closest = key;
-        if (distX < 0) {
+        if (distX > 0) {
           side = 0;
         } else {
           side = 1;
