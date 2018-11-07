@@ -174,9 +174,9 @@ class Root extends React.Component {
     let newState = JSON.parse(oldStateJSON);
     let nodePath = path.pop();
     let parentNode = this.getNodeByPath(path, newState);
-    let nodeIdx = parentNode.children.find((value) => {
+    let nodeIdx = parentNode.children.findIndex((value) => {
       return value.path == nodePath;
-    })
+    });
     parentNode.children.splice(nodeIdx, 1);
     this.setState({nodeData: newState, undoNodeData: this.state.nodeData, undoSnackBarVisible: true}, () => {
       Settings.saveNodeData(this.state.nodeData);
