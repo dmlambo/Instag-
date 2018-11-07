@@ -26,8 +26,10 @@ import {
   Surface,
   FAB,
   Paragraph,
+  Title,
   Snackbar,
   Portal,
+  TouchableRipple,
 } from 'react-native-paper';
 
 "use strict";
@@ -150,23 +152,7 @@ class Root extends React.Component {
   }
   
   onAddNode = (path) => {
-    let oldStateJSON = JSON.stringify(this.state.nodeData);
-    let newState = JSON.parse(oldStateJSON);
-    let node = this.getNodeByPath(path, newState);
-    if (!Array.isArray(node.children)) {
-      console.warn("Internal data malformed, at path " + path);
-      node.children = new Array();
-    }
-    let child = {
-      path: random32bit(),
-      title: "",
-      children: [],
-    };
-    node.children.push(child);
-    this.setState({nodeData: newState}, () => {
-      Settings.saveNodeData(this.state.nodeData);
-      this.onEditNode(path.concat(child.path))
-    });
+    this.onEditNode(path.concat(random32bit()));
   }
 
   onDeleteNode = (path) => {
@@ -187,11 +173,27 @@ class Root extends React.Component {
     let oldStateJSON = JSON.stringify(this.state.nodeData);
     let newState = JSON.parse(oldStateJSON);
     let node = this.getNodeByPath(path, newState);
-    if (!node.data) {
-      node.data = new Array();
+
+    // Early out if nothing is entered.
+    if (node == undefined && newItems.length == 0 && title == undefined) {
+      this.props.screenProps.setDrawerLock(false);
+      return;
     }
-    node.data = newItems;
-    node.title = title;
+        
+    if (!node) {
+      node = {
+        path: path.pop(),
+        children: [],
+        data: newItems,
+        title: title,
+      }
+      let parent = this.getNodeByPath(path, newState);
+      parent.children.push(node);
+    } else {
+      node.data = newItems;
+      node.title = title;
+    }
+
     this.setState({nodeData: newState}, () => {
       Settings.saveNodeData(this.state.nodeData);
       this.props.screenProps.setDrawerLock(false);
@@ -413,10 +415,10 @@ class Root extends React.Component {
             <View style={styles.container}>
             {
               this.state.nodeData.children &&
-              this.state.nodeData.children.map((child, idx) =>
+              this.state.nodeData.children.map((child) =>
                 <TagNodeView
                   style={{margin: 4}}
-                  key={idx}
+                  key={child.path}
                   onEditNode={this.onEditNode}
                   onAddNode={this.onAddNode}
                   onDeleteNode={this.onDeleteNode}
@@ -429,12 +431,14 @@ class Root extends React.Component {
                   parentPath={new Array(this.state.nodeData.path)}/>
               )
             }
-            </View>
-            <View style={styles.fabContainer}>
-              {
-                this.state.selectionState.length == 0 &&
-                <FAB icon="add" small onPress={()=>{this.onAddNode(["root"])}}/>
-              }
+            {
+              this.state.selectionState.length == 0 &&
+              <Surface style={{margin: 10, elevation: 4, borderRadius: 4, alignItems: 'center', opacity: 0.6}}>
+                <TouchableRipple style={{flex: 1, marginVertical: 4}} onPress={()=>{this.onAddNode(["root"])}}>
+                  <Title>Add New Section</Title>
+                </TouchableRipple>
+              </Surface>
+            }
             </View>
           </ScrollView>
           {

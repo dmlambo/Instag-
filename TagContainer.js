@@ -321,6 +321,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexWrap: 'wrap',
     flexDirection: 'row',
+    alignItems: 'flex-start',
     justifyContent: 'flex-start',
   },
 });
