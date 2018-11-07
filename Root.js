@@ -1,5 +1,4 @@
 import React from 'react';
-import { SafeAreaView } from 'react-navigation';
 
 import { 
   ActivityIndicator,
@@ -11,6 +10,7 @@ import {
   BackHandler, 
   ScrollView, 
   View,
+  SafeAreaView,
 } from 'react-native';
 
 
@@ -22,7 +22,6 @@ import Settings from './Settings';
 import {
   Appbar,
   DefaultTheme,
-  IconButton,
   Surface,
   FAB,
   Paragraph,
@@ -382,23 +381,10 @@ export default class Root extends React.Component {
     );
   }
 
-  getContentView = () => {
+  getContentView = (selectionMode) => {
     if (this.state.nodeData != undefined) {
-      let selectionMode = this.state.selectionState.length > 0;
-      var appBarBackgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;       
-      var appBarTitle = selectionMode ? "Select Tags" : "Tags";
-      var appBarAction = selectionMode ? this.cancelSelection : () => {this.props.navigation.openDrawer() };
       return (
-        <View style={StyleSheet.absoluteFill}>
-          <Appbar.Header style={{backgroundColor: appBarBackgroundColor}}>
-            <Appbar.Action 
-              size={30} 
-              icon={selectionMode ? "cancel" : "menu"}
-              onPress={appBarAction}/>
-            <Appbar.Content
-              title={appBarTitle} // TODO: Routename?
-            />
-          </Appbar.Header>
+        <SafeAreaView style={{flex: 1}}>
           <ScrollView>
             <View style={styles.container}>
             {
@@ -432,37 +418,7 @@ export default class Root extends React.Component {
           {
             this.getSelectionWidget()
           }
-          <Portal>
-            <Snackbar
-              duration={3000}
-              visible={this.state.undoSnackBarVisible}
-              onDismiss={() => this.setState({ undoSnackBarVisible: false })}
-              action={{
-                label: 'Undo',
-                onPress: () => {
-                  this.setState({nodeData: this.state.undoNodeData, undoSnackBarVisible: false})
-                },
-              }}
-            >
-              Tags deleted
-            </Snackbar>
-            <Snackbar
-              duration={1500}
-              visible={this.state.copiedSnackbarVisible}
-              onDismiss={() => this.setState({copiedSnackbarVisible: false})}
-              action={{
-                label: 'Dismiss',
-                onPress: () => {
-                  this.setState({copiedSnackbarVisible: false}, () => {
-                    Settings.saveNodeData(this.state.nodeData);
-                  })
-                },
-              }}
-            >
-              Tags copied to clipboard!
-            </Snackbar>
-          </Portal>
-        </View>
+        </SafeAreaView>
       );
     } else {
       return (
@@ -473,12 +429,55 @@ export default class Root extends React.Component {
     }
   }
   render() {
+    let selectionMode = this.state.selectionState.length > 0;
+    var appBarBackgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;       
+    var appBarTitle = selectionMode ? "Select Tags" : "Tags";
+    var appBarAction = selectionMode ? this.cancelSelection : () => {this.props.navigation.openDrawer() };
     return (
-      <SafeAreaView style={{flex: 1}}>
-      {
-        this.getContentView()
-      }
-      </SafeAreaView>
+      <View style={StyleSheet.absoluteFill}>
+        <Appbar.Header style={{backgroundColor: appBarBackgroundColor}}>
+          <Appbar.Action 
+            size={30} 
+            icon={selectionMode ? "cancel" : "menu"}
+            onPress={appBarAction}/>
+          <Appbar.Content
+            title={appBarTitle} // TODO: Routename?
+          />
+        </Appbar.Header>
+        {
+          this.getContentView(selectionMode)
+        }
+        <Portal>
+          <Snackbar
+            duration={3000}
+            visible={this.state.undoSnackBarVisible}
+            onDismiss={() => this.setState({ undoSnackBarVisible: false })}
+            action={{
+              label: 'Undo',
+              onPress: () => {
+                this.setState({nodeData: this.state.undoNodeData, undoSnackBarVisible: false})
+              },
+            }}
+          >
+            Tags deleted
+          </Snackbar>
+          <Snackbar
+            duration={1500}
+            visible={this.state.copiedSnackbarVisible}
+            onDismiss={() => this.setState({copiedSnackbarVisible: false})}
+            action={{
+              label: 'Dismiss',
+              onPress: () => {
+                this.setState({copiedSnackbarVisible: false}, () => {
+                  Settings.saveNodeData(this.state.nodeData);
+                })
+              },
+            }}
+          >
+            Tags copied to clipboard!
+          </Snackbar>
+        </Portal>
+      </View>
     );
   }
 }

@@ -143,12 +143,6 @@ export default class TagEditModal extends React.Component {
             />
           </Appbar.Header>
           <SafeAreaView style={{flex: 1.0, flexDirection: 'column'}}>
-            <KeyboardAvoidingView style={styles.fabKAV} behavior="padding" keyboardVerticalOffset={75}>
-              <FAB
-                style={styles.fab}
-                icon="add"
-                onPress={this.onAddHashtag}/>
-            </KeyboardAvoidingView>
             <TextInput
               style={{margin: 8, minWidth: 160, backgroundColor: '#fff1'}} 
               label="Section Title" 
@@ -158,6 +152,12 @@ export default class TagEditModal extends React.Component {
             <View style={{margin: 8, borderWidth: 1, borderRadius: 4, borderColor: "#0004", flex: 1}}>
               <TagContainer items={this.state.items} onRemoveItem={this.onRemove} onReorderItems={this.onReorderItems}/>
             </View>
+            <KeyboardAvoidingView style={styles.fabKAV} behavior="padding" keyboardVerticalOffset={75}>
+              <FAB
+                style={styles.fab}
+                icon="add"
+                onPress={this.onAddHashtag}/>
+            </KeyboardAvoidingView>
             <TextModal
               visible={this.state.editModalVisible}
               onRequestClose={this.onRequestModalClose} 

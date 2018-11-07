@@ -1,6 +1,12 @@
 import React from 'react';
 
-import { View, AsyncStorage, Clipboard, Picker } from 'react-native';
+import { 
+  ScrollView,
+  View, 
+  AsyncStorage, 
+  Clipboard, 
+  Picker,
+  Platform, } from 'react-native';
 
 // Paper
 import { 
@@ -136,50 +142,82 @@ export default class Settings extends React.Component {
     });
   }
 
-  render() {
+  getPicker = () => {
+    let options = ["30", "60", "Unlimited"];
+    let values = [30, 60, 0];
+    let stateChange = (itemValue) => {
+      let preferences = {copyLimit: itemValue};
+      this.setState(preferences);
+      Settings.savePreferences(preferences); // ModX!
+    };
 
+    if (Platform.OS == 'ios') {
+      return ( 
+        <Button title={this.state.value} onPress={() => ActionSheetIOS.showActionSheetWithOptions({
+          options,
+        }, (idx) => {stateChange(values[idx])})}/>
+      );
+    } else {
+      return (
+        <Picker
+          selectedValue={this.state.copyLimit}
+          style={{ height: 30, width: 100 }}
+          onValueChange={stateChange}>
+          {
+            options.forEach((option, idx) => {
+              return <Picker.Item label={option} value={values[idx]}/>
+            })
+          }
+        </Picker>            
+      );
+    }
+  }
+
+  render() {
     return (
-      <View>
+      <View style={{flex: 1}}>
         <Appbar.Header>
           <Appbar.Content
             title="Settings"
           />
           <Appbar.BackAction
-            onPress={() => this.props.navigation.goBack()}
+            onPress={() => this.props.navigation.replace("Root")}
           />
         </Appbar.Header>
-        <List.Section title="Options">
-        <List.Item
-          title="Item copy limit"
-          right={() => 
-            <Picker
-              selectedValue={this.state.copyLimit}
-              style={{ height: 30, width: 100 }}
-              onValueChange={(itemValue) => {
-                let preferences = {copyLimit: itemValue};
-                this.setState(preferences);
-                Settings.savePreferences(preferences); // ModX!
-              }}>
-              <Picker.Item label="30" value="30" />
-              <Picker.Item label="60" value="60" />
-              <Picker.Item label="Unlimited" value="0" />
-            </Picker>            
-          } />
-        </List.Section>
-        <List.Section title="Import/Export Tags">
-          <List.Item 
-            left={() => <List.Icon icon="assignment" />} 
-            onPress={this.copyNodeData}
-            title="Copy JSON blob to clipboard"/>
-          <List.Item 
-            left={() => <List.Icon icon="cloud-download" />} 
-            onPress={this.replaceNodeData}
-            title="Replace JSON blob from clipboard"/>
-          <List.Item 
-            left={() => <List.Icon icon="delete"/>}
-            onPress={this.showClearDataConfirmDialog} 
-            title="Clear Tag Data"/>
-        </List.Section>
+        <ScrollView style={{flex:1}}>
+          <List.Section title="Options">
+          <List.Item
+            title="Item copy limit"
+            right={() => 
+              <Picker
+                selectedValue={this.state.copyLimit}
+                style={{ height: 30, width: 100 }}
+                onValueChange={(itemValue) => {
+                  let preferences = {copyLimit: itemValue};
+                  this.setState(preferences);
+                  Settings.savePreferences(preferences); // ModX!
+                }}>
+                <Picker.Item label="30" value="30" />
+                <Picker.Item label="60" value="60" />
+                <Picker.Item label="Unlimited" value="0" />
+              </Picker>            
+            } />
+          </List.Section>
+          <List.Section title="Import/Export Tags">
+            <List.Item 
+              left={() => <List.Icon icon="assignment" />} 
+              onPress={this.copyNodeData}
+              title="Copy JSON blob to clipboard"/>
+            <List.Item 
+              left={() => <List.Icon icon="cloud-download" />} 
+              onPress={this.replaceNodeData}
+              title="Replace JSON blob from clipboard"/>
+            <List.Item 
+              left={() => <List.Icon icon="delete"/>}
+              onPress={this.showClearDataConfirmDialog} 
+              title="Clear Tag Data"/>
+          </List.Section>
+        </ScrollView>        
         <Portal>
           <Dialog
             visible={this.state.clearDataConfirmVisible}

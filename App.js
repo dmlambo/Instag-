@@ -12,8 +12,7 @@ import {
   Provider as PaperProvider, 
   Button,
   DefaultTheme, 
-  FAB, 
-  Title } from 'react-native-paper';
+} from 'react-native-paper';
 
 "use strict";
 
@@ -26,8 +25,7 @@ const DrawerComponent = (props) => (
   <SafeAreaView forceInset={{ top: 'always', horizontal: 'never' }}>
     <DrawerItems {...props}/>
     <Button icon="settings" onPress={() => {
-      const parent = props.navigation.dangerouslyGetParent();
-      parent.push("Settings")
+      props.navigation.replace("Settings");
       }}>
         Settings
     </Button>
