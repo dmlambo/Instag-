@@ -106,6 +106,7 @@ class TagContainer extends React.Component {
                 style={[
                   styles.tag,
                   {
+                    elevation: 15,
                     transform: [{scaleX: expand}, {scaleY: expand}],
                     position: 'absolute',
                     left: Animated.add(this.state.panX, tagXOffset),
@@ -193,51 +194,6 @@ class TagContainer extends React.Component {
   }
 
   closestTest = (screenX, screenY) => {
-/* Following code is a RTL-text-style search that finds the closest line
-   first, and then the closest tag within that line, much like the caret
-   positioning on Android/iOS.
-    var lastY = -1;
-    var lines = [];
-    var idx = -1;
-
-    // Organize the tags into lines
-    for (var key in this.tagPositions) {
-      var val = this.tagPositions[key];
-      if (val.screenY != lastY) {
-        idx++;
-        lines[idx] = new Map();
-        lastY = val.screenY;
-      }
-      lines[idx].set(key, val);
-    }
-
-    var closestLine = Number.MAX_SAFE_INTEGER;
-    var closestIdx = -1;
-    lines.forEach((val, idx) => {
-      var any = val.values().next().value;
-      var distTop = Math.abs(any.screenY - screenY);
-      var distBot = Math.abs((any.screenY + any.height) - screenY);
-      if (distTop < closestLine) { closestLine = distTop; closestIdx = idx; }
-      if (distBot < closestLine) { closestLine = distBot; closestIdx = idx; }
-    });
-
-    // Find the closest in the line to the pan
-    var closestElement = Number.MAX_SAFE_INTEGER;
-    var closestKey = "";
-    lines[closestIdx].forEach((val, key) => {
-      var left = Math.abs(val.screenX - screenX);
-      var right = Math.abs((val.screenX + val.width) - screenX);
-      if (left < closestElement) {
-        closestElement = left;
-        closestKey = key;
-      }
-      if (right < closestElement) {
-        closestElement = left;
-        closestKey = key;
-      }      
-    });
-    /* RTL-text-style */
-
     // Find closest to center of each tag. This has implications for long
     // tags next to short tags, with a selection bias towards the smaller.
     var closestTag = Number.MAX_SAFE_INTEGER;
@@ -245,7 +201,7 @@ class TagContainer extends React.Component {
     var side = 0;
 
     // offset Y so we can more easily see where it's being dropped
-    let safeScreenY = screenY - 70;
+    let safeScreenY = screenY - 40;
 
     for (var key in this.tagPositions) {
       var val = this.tagPositions[key];
@@ -275,7 +231,7 @@ class TagContainer extends React.Component {
             this.props.items && this.props.items.map((x, idx) =>
               <MeasuredView 
                   onStartShouldSetResponder={() => {this.setState({hitElem: x}); return true;}}
-                  key={idx} setDimensions={this.setTagDimensions} tag={x}>
+                  key={x} setDimensions={this.setTagDimensions} tag={x}>
                 <Chip
                   style={[styles.tag, this.state.dragElem === x && styles.movingTag]} 
                   responder={() => {}}
@@ -312,9 +268,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 3,
     height: 32,
+    elevation: 6,
   },
   container: {
-    ...StyleSheet.absoluteFillObject,
+    flex: 1,
   },
   flextainer: {
     margin: 8,

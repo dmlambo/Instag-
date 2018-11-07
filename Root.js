@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, createStackNavigator } from 'react-navigation';
+import { SafeAreaView } from 'react-navigation';
 
 import { 
   ActivityIndicator,
@@ -16,11 +16,11 @@ import {
 
 // Local imports
 import TagNodeView from './TagNodeView';
-import TagEditModal from './TagEditModal';
 import Settings from './Settings';
 
 // Paper
 import {
+  Appbar,
   DefaultTheme,
   IconButton,
   Surface,
@@ -43,36 +43,11 @@ function random32bit() {
   return '00000000'.slice(str.length) + str;
 }
 
-class Root extends React.Component {
-  static navigationOptions = ({navigation}) => {
-    var selectionMode = navigation.getParam("selectionMode");
-    var backgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface; 
-    var cancelSelection = navigation.getParam("cancelSelection");
-    var title = selectionMode ? "Select Tags" : "Tags";
-    let drawerLockMode = selectionMode ? 'locked-closed' : 'unlocked';  
-    return ({
-      drawerLockMode,
-      headerStyle: {
-        backgroundColor,
-      },
-      title,
-      headerLeft: (
-        selectionMode ? 
-          <IconButton icon="cancel" size={30} onPress={cancelSelection}/> :
-          <IconButton icon="menu" size={32} onPress={navigation.openDrawer}/>
-      )
-    });
-  };
-
+export default class Root extends React.Component {
   constructor(props) {
     super(props);
 
     this.backSubscription = BackHandler.addEventListener('hardwareBackPress', this.handleBack)
-
-    // This seems wrong.
-    this.props.navigation.setParams({
-      cancelSelection: this.cancelSelection,
-    });
 
     // Selection State is populated by paths into the node data tree. ie
     // nodeData = [{path: 'foo', children: [{path: 'bar'}]}, {path: 'baz'}]
@@ -409,8 +384,21 @@ class Root extends React.Component {
 
   getContentView = () => {
     if (this.state.nodeData != undefined) {
+      let selectionMode = this.state.selectionState.length > 0;
+      var appBarBackgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;       
+      var appBarTitle = selectionMode ? "Select Tags" : "Tags";
+      var appBarAction = selectionMode ? this.cancelSelection : () => {this.props.navigation.openDrawer() };
       return (
         <View style={StyleSheet.absoluteFill}>
+          <Appbar.Header style={{backgroundColor: appBarBackgroundColor}}>
+            <Appbar.Action 
+              size={30} 
+              icon={selectionMode ? "cancel" : "menu"}
+              onPress={appBarAction}/>
+            <Appbar.Content
+              title={appBarTitle} // TODO: Routename?
+            />
+          </Appbar.Header>
           <ScrollView>
             <View style={styles.container}>
             {
@@ -424,7 +412,7 @@ class Root extends React.Component {
                   onDeleteNode={this.onDeleteNode}
                   onNodeSelected={this.onNodeSelected}
                   onHighPriority={this.onHighPriorityNode}
-                  selectionMode={this.state.selectionState.length > 0}
+                  selectionMode={selectionMode}
                   nodeData={child}
                   pathForNode={this.createPathForNode}
                   selectedPredicate={this.selectedPredicate}
@@ -516,7 +504,7 @@ const styles = StyleSheet.create({
   }
 });
 
-export default createStackNavigator({
+/*export default createStackNavigator({
   Root: { screen: Root },
   Edit: { screen: TagEditModal },
-});
+});*/

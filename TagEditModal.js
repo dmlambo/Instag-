@@ -1,15 +1,15 @@
 import React from 'react';
-import { StyleSheet, View, KeyboardAvoidingView } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, LayoutAnimation } from 'react-native';
 
 // Local Imports
 import TextModal from './TextModal';
 import TagContainer from './TagContainer';
 
 // Paper
-import { FAB, Button, TextInput, TextInputMask } from "react-native-paper";
+import { Appbar, FAB, TextInput } from "react-native-paper";
 
 // Navigation
-import { createStackNavigator, withNavigation } from "react-navigation";
+import { SafeAreaView } from "react-navigation";
 
 'use strict';
 
@@ -19,7 +19,7 @@ export default class TagEditModal extends React.Component {
       headerTitle: (
         // There's a PR to add fontSize support in Paper TextInput styling
         // https://github.com/callstack/react-native-paper/pull/543
-        <TextInput 
+        <TextInput
           navigation={navigation}
           style={{flex: 1, margin: 4, backgroundColor: '#fff'}} 
           label="Section Title" 
@@ -34,21 +34,14 @@ export default class TagEditModal extends React.Component {
     super(props);
 
     this.blurSubscription = this.props.navigation.addListener('willBlur', payload => {
-      this.props.navigation.setParams({titleChanged: null});
-      this.props.navigation.getParam("onSubmitted")(this.props.navigation.getParam("path"), this.state.items, this.props.navigation.getParam("title"));
+      this.props.navigation.getParam("onSubmitted")(this.props.navigation.getParam("path"), this.state.items, this.state.title);
     })
-
-    this.props.navigation.setParams({titleChanged: this.titleChanged});
 
     this.state = {
       editModalVisible: false,
       items: this.props.navigation.getParam("data", []),
+      title: this.props.navigation.getParam("title"),
     }
-  }
-
-  titleChanged = (title) => {
-    console.log("New title" + title);
-    this.props.navigation.setParams({title});
   }
 
   // Show modal
@@ -127,35 +120,62 @@ export default class TagEditModal extends React.Component {
   }
 
   onReorderItems = (items, callback) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     // We're going to trust that the items are all there. Right?
     this.setState({items}, callback);
   };
 
   render() {
-    return (
-      // BUG! https://github.com/facebook/react-native/issues/13754
+      // KeyboardAvoidingView BUG! https://github.com/facebook/react-native/issues/13754
       // View doesn't go back to its original size.
-      <KeyboardAvoidingView style={StyleSheet.absoluteFill} behavior="height" keyboardVerticalOffset={75}>
-        <TagContainer items={this.state.items} onRemoveItem={this.onRemove} onReorderItems={this.onReorderItems}/>
-        <FAB
-          style={styles.fab}
-          icon="add"
-          onPress={this.onAddHashtag}/>
-        <TextModal
-          visible={this.state.editModalVisible}
-          onRequestClose={this.onRequestModalClose} 
-          onTextAccepted={this.onAdd}
-          onFilterText={this.onFilterText}/>
-      </KeyboardAvoidingView>
+
+      // There's a PR to add fontSize support in Paper TextInput styling
+      // https://github.com/callstack/react-native-paper/pull/543
+
+      return (
+        <View style={{flex: 1}}>        
+          <Appbar.Header>
+            <Appbar.Content
+              title="Edit Section"
+            />
+            <Appbar.BackAction
+              onPress={() => this.props.navigation.goBack()}
+            />
+          </Appbar.Header>
+          <SafeAreaView style={{flex: 1.0, flexDirection: 'column'}}>
+            <KeyboardAvoidingView style={styles.fabKAV} behavior="padding" keyboardVerticalOffset={75}>
+              <FAB
+                style={styles.fab}
+                icon="add"
+                onPress={this.onAddHashtag}/>
+            </KeyboardAvoidingView>
+            <TextInput
+              style={{margin: 8, minWidth: 160, backgroundColor: '#fff1'}} 
+              label="Section Title" 
+              value={this.state.title}
+              onChangeText={(x) => { this.setState({title: x})}}
+              />
+            <View style={{margin: 8, borderWidth: 1, borderRadius: 4, borderColor: "#0004", flex: 1}}>
+              <TagContainer items={this.state.items} onRemoveItem={this.onRemove} onReorderItems={this.onReorderItems}/>
+            </View>
+            <TextModal
+              visible={this.state.editModalVisible}
+              onRequestClose={this.onRequestModalClose} 
+              onTextAccepted={this.onAdd}
+              onFilterText={this.onFilterText}/>
+          </SafeAreaView>
+        </View>
     );
   }
 };
 
 const styles = StyleSheet.create({
-    fab: {
-      position: 'absolute',
-      margin: 16,
-      right: 0,
-      bottom: 0,
-    },
+  fab: {
+    margin: 16,
+  },
+  fabKAV: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+  }
 });
