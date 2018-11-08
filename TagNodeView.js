@@ -51,14 +51,17 @@ class TagNodeView extends React.Component {
   }
 
   getContentView = () => {
-    if (this.state.expanded) {
+    if (this.props.nodeData.children && this.state.expanded) {
       return (
-        <View style={{flexDirection: 'row'}}>
-          <View style={{flexDirection: 'column', flex: 1.0}}>
-            {
-              this.getChildViews()
-            }
-          </View>
+        <View style={{flexDirection: 'column', flex: 1.0, margin: this.props.style.margin}}>
+          {
+            this.props.nodeData.children.map((nodeData, idx) =>
+            <TagNodeView 
+              {...this.props}
+              key={idx} 
+              nodeData={nodeData}
+              parentPath={this.path}/>)
+          }
         </View>
       );
     }
@@ -68,27 +71,17 @@ class TagNodeView extends React.Component {
     this.props.onEditNode(this.path);
   }
 
-  getChildViews = () => {
-    if (this.props.nodeData.children) {
-      return this.props.nodeData.children.map((nodeData, idx) =>
-          <TagNodeView 
-            {...this.props}
-            key={idx} 
-            nodeData={nodeData}
-            parentPath={this.path}/>
-      );
-    } else {
-      return <View/>;
-    }
-  }
-
   onExpandPress = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     this.setState({expanded: !this.state.expanded});
   }
 
   onLongPress = () => {
-    this.props.onNodeSelected(this.path);
+    this.props.onNodeLongPress(this.path);
+  }
+
+  onNodePress = () => {
+    this.props.onNodePress(this.path);
   }
 
   onAddNode = () => {
@@ -110,25 +103,30 @@ class TagNodeView extends React.Component {
   }
 
   getUtilityButtons = () => {
-    if (this.props.selectionMode) {
-      let opacity = 0.25;
-      let color = null
-      if (this.props.nodeData.highPriority) {
-        opacity = 1.0;
-        color = 'red';
+    switch (this.props.mode) {
+      case 'selection': {
+        let opacity = 0.25;
+        let color = null
+        if (this.props.nodeData.highPriority) {
+          opacity = 1.0;
+          color = 'red';
+        }
+        return ([
+          <IconButton style={[styles.utilityButton, {opacity}]} key="1" color={color} onPress={this.onHighPriority} icon="priority-high"/>,
+          <IconButton style={styles.utilityButton} key="2" onPress={() => {}} icon="vertical-align-top"/>,
+          <IconButton style={styles.utilityButton} key="3" onPress={() => {}} icon="vertical-align-bottom"/>,
+        ]);
       }
+      case 'edit':
+        return ([
+          <IconButton style={styles.utilityButton} key="4" onPress={() => this.setState({deleteNodeDialogVisible: true})} icon="delete-sweep"/>,
+          <IconButton style={styles.utilityButton} key="5" onPress={this.onAddNode} icon="playlist-add"/>,
+        ]);
+      default:
       return ([
-        <IconButton style={[styles.utilityButton, {opacity}]} key="1" color={color} onPress={this.onHighPriority} icon="priority-high"/>,
-        <IconButton style={styles.utilityButton} key="2" onPress={() => {}} icon="vertical-align-top"/>,
-        <IconButton style={styles.utilityButton} key="3" onPress={() => {}} icon="vertical-align-bottom"/>,
-      ]);
-    } else {
-      return ([
-        <IconButton style={styles.utilityButton} key="4" onPress={() => this.setState({deleteNodeDialogVisible: true})} icon="delete-sweep"/>,
-        <IconButton style={styles.utilityButton} key="5" onPress={this.onAddNode} icon="playlist-add"/>,
         <IconButton style={styles.utilityButton} key="6" onPress={this.onEditNode} icon="edit"/>,
       ]);
-    }
+    };
   }
 
   render() {
@@ -139,8 +137,8 @@ class TagNodeView extends React.Component {
     var expandable = this.props.nodeData.children && this.props.nodeData.children.length > 0;
     var defaultAction = () => {};
     
-    if (this.props.selectionMode) {
-      defaultAction = this.onLongPress;
+    if (this.props.mode == 'selection') {
+      defaultAction = this.onNodePress;
     } else if (expandable) {
       defaultAction =this.onExpandPress
     }
@@ -173,7 +171,6 @@ class TagNodeView extends React.Component {
                 </Dialog.Actions>
               </Dialog>
             </Portal>
-
             <View style={styles.titleBar}>
               {
                 expandable && 

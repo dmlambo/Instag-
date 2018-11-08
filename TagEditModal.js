@@ -147,6 +147,7 @@ export default class TagEditModal extends React.Component {
               style={{margin: 8, minWidth: 160, backgroundColor: '#fff1'}} 
               label="Section Title" 
               value={this.state.title}
+              autoFocus={!this.state.title}
               onChangeText={(x) => { this.setState({title: x})}}
               />
             <View style={{margin: 8, borderWidth: 1, borderRadius: 4, borderColor: "#0004", flex: 1}}>

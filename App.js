@@ -42,7 +42,7 @@ let RootNavigator = createDrawerNavigator({
 
 let TopStackNavigator = createStackNavigator({
   Root: {
-    screen: RootNavigator,
+    screen: Root,
   },
   Settings: {
     screen: Settings,

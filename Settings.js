@@ -92,6 +92,10 @@ export default class Settings extends React.Component {
     this.props.navigation.replace("Root");
     return true;
   }
+  
+  componentWillUnmount = () => {
+    this.backSubscription && this.backSubscription.remove();
+  }
 
   copyNodeData = () => {
     Settings.getSavedNodeData().then((data) => {

@@ -59,6 +59,7 @@ export default class Root extends React.Component {
       undoNodeData: null,
       bottomDockSlideIn: new Animated.Value(0),
       undoSnackBarVisible: false,
+      mode: 'none',
     };
 
     console.log("Fetching user data...");
@@ -91,10 +92,9 @@ export default class Root extends React.Component {
 
   cancelSelection = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    this.setState({selectionState: new Array()}, () => {
+    this.setState({selectionState: new Array(), mode: 'none'}, () => {
       this.shuffleSelection();
       this.props.screenProps.setDrawerLock(false);
-      this.props.navigation.setParams({selectionMode: false})
     });
   }
 
@@ -121,7 +121,6 @@ export default class Root extends React.Component {
   onEditNode = (path) => {
     console.log("Path is: " + path);
     let node = this.getNodeByPath(path.slice(0), this.state.nodeData);
-    this.props.screenProps.setDrawerLock(true);
     this.props.navigation.push("Edit", {...node, path, onSubmitted: this.onEditSubmitted});
   }
   
@@ -200,7 +199,33 @@ export default class Root extends React.Component {
     });  
   }
 
-  onNodeSelected = (path) => {
+  onNodeLongPress = (path) => {
+    switch (this.state.mode) {
+      case 'none':
+      case 'selection':
+        this.toggleNodeSelection(path);
+        break;
+      case 'edit':
+        // Do nothing?
+        break;
+    }
+  }
+
+  onNodePress = (path) => {
+    switch (this.state.mode) {
+      case 'none':
+        // Presumably we can't get to here.
+        break;
+      case 'selection':
+        this.toggleNodeSelection(path);
+        break;
+      case 'edit':
+        // Do nothing?
+        break;
+    }
+  }
+
+  toggleNodeSelection = (path) => {
     var selectionState = this.state.selectionState.slice(0);
     var nodeIdx = this.state.selectionState.indexOf(path);
     
@@ -216,11 +241,10 @@ export default class Root extends React.Component {
       selectionState.splice(nodeIdx, 1);
     }
 
-    this.setState({selectionState}, () => {
-      let selectionMode = this.state.selectionState.length;
+    let mode = selectionState.length ? 'selection' : 'none';
+    this.setState({selectionState, mode}, () => {
       this.shuffleSelection();
-      this.props.screenProps.setDrawerLock(selectionMode);
-      this.props.navigation.setParams({selectionMode})
+      this.props.screenProps.setDrawerLock(this.state.mode == 'selection');
     });
   }
 
@@ -381,12 +405,12 @@ export default class Root extends React.Component {
     );
   }
 
-  getContentView = (selectionMode) => {
+  getContentView = () => {
     if (this.state.nodeData != undefined) {
       return (
         <SafeAreaView style={{flex: 1}}>
           <ScrollView>
-            <View style={styles.container}>
+            <View style={{padding: 4}}>
             {
               this.state.nodeData.children &&
               this.state.nodeData.children.map((child) =>
@@ -396,9 +420,10 @@ export default class Root extends React.Component {
                   onEditNode={this.onEditNode}
                   onAddNode={this.onAddNode}
                   onDeleteNode={this.onDeleteNode}
-                  onNodeSelected={this.onNodeSelected}
+                  onNodeLongPress={this.onNodeLongPress}
+                  onNodePress={this.onNodePress}
                   onHighPriority={this.onHighPriorityNode}
-                  selectionMode={selectionMode}
+                  mode={this.state.mode}
                   nodeData={child}
                   pathForNode={this.createPathForNode}
                   selectedPredicate={this.selectedPredicate}
@@ -406,7 +431,7 @@ export default class Root extends React.Component {
               )
             }
             {
-              this.state.selectionState.length == 0 &&
+              this.state.mode == 'edit' &&
               <Surface style={{margin: 10, elevation: 4, borderRadius: 4, alignItems: 'center', opacity: 0.6}}>
                 <TouchableRipple style={{flex: 1, marginVertical: 4}} onPress={()=>{this.onAddNode(["root"])}}>
                   <Title>Add New Section</Title>
@@ -415,9 +440,6 @@ export default class Root extends React.Component {
             }
             </View>
           </ScrollView>
-          {
-            this.getSelectionWidget()
-          }
         </SafeAreaView>
       );
     } else {
@@ -428,24 +450,52 @@ export default class Root extends React.Component {
       );
     }
   }
+
+  appBarModeParams = {
+    none: {
+      title: "Taggy McTagface",
+      backgroundColor: DefaultTheme.colors.primary,
+      action: () => this.props.navigation.replace("Settings"),
+      icon: "settings",
+    },
+    selection: {
+      title: "Select Tag",
+      backgroundColor: DefaultTheme.colors.accent,
+      action: () => this.cancelSelection(),
+      icon: "cancel",
+    },
+    edit: {
+      title: "Edit List",
+      backgroundColor: DefaultTheme.colors.accent,
+      action: () => this.setState({mode: 'none'}),
+      icon: "cancel",
+    },
+  };
+
   render() {
-    let selectionMode = this.state.selectionState.length > 0;
-    var appBarBackgroundColor = selectionMode ? DefaultTheme.colors.accent : DefaultTheme.colors.surface;       
-    var appBarTitle = selectionMode ? "Select Tags" : "Tags";
-    var appBarAction = selectionMode ? this.cancelSelection : () => {this.props.navigation.openDrawer() };
+    let appbarParams = this.appBarModeParams[this.state.mode];
     return (
       <View style={StyleSheet.absoluteFill}>
-        <Appbar.Header style={{backgroundColor: appBarBackgroundColor}}>
+        <Appbar.Header style={{backgroundColor: appbarParams.backgroundColor}}>
           <Appbar.Action 
             size={30} 
-            icon={selectionMode ? "cancel" : "menu"}
-            onPress={appBarAction}/>
+            icon={appbarParams.icon}
+            onPress={appbarParams.action}/>
           <Appbar.Content
-            title={appBarTitle} // TODO: Routename?
+            title={appbarParams.title} // TODO: Routename?
           />
+          {
+            this.state.mode == 'none' && 
+            <Appbar.Action 
+              icon={"border-color"}
+              onPress={() => this.setState({mode: 'edit'})}/>
+          }
         </Appbar.Header>
         {
-          this.getContentView(selectionMode)
+          this.getContentView()
+        }
+        {
+          this.getSelectionWidget()
         }
         <Portal>
           <Snackbar
