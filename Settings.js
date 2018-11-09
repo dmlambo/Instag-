@@ -1,10 +1,11 @@
 import React from 'react';
 
+import Expo from 'expo';
+
 import { 
   BackHandler,
   ScrollView,
   View, 
-  AsyncStorage, 
   Clipboard, 
   Picker,
   Platform, } from 'react-native';
@@ -44,7 +45,7 @@ export default class Settings extends React.Component {
   static PreferencesKey = 'preferences';
 
   static getSavedPreferences = async () => {
-    let storedPreferences = await AsyncStorage.getItem(Settings.PreferencesKey);
+    let storedPreferences = await Expo.SecureStore.getItemAsync(Settings.PreferencesKey);
     if (storedPreferences == null) {
       return {copyLimit: 30};
     }
@@ -53,7 +54,7 @@ export default class Settings extends React.Component {
 
   static savePreferences = async (data) => {
     try {
-      await AsyncStorage.setItem(Settings.PreferencesKey, JSON.stringify(data));
+      await Expo.SecureStore.setItemAsync(Settings.PreferencesKey, JSON.stringify(data));
     } catch (e) {
       console.error("Error saving preferences data:");
       console.error(e);
@@ -61,7 +62,7 @@ export default class Settings extends React.Component {
   }
 
   static getSavedNodeData = async () => {
-    return await AsyncStorage.getItem(Settings.NodeDataKey);
+    return await Expo.SecureStore.getItemAsync(Settings.NodeDataKey);
   }
 
   static getParsedNodeData = async () => {
@@ -74,7 +75,7 @@ export default class Settings extends React.Component {
 
   static saveNodeData = async (data) => {
     try {
-      await AsyncStorage.setItem(Settings.NodeDataKey, JSON.stringify(data));
+      await Expo.SecureStore.setItemAsync(Settings.NodeDataKey, JSON.stringify(data));
     } catch (e) {
       console.error("Error saving user data:");
       console.error(e);
@@ -118,7 +119,7 @@ export default class Settings extends React.Component {
           console.error(data);
           this.showSnackbar("JSON data malformed!");
         } else {
-          AsyncStorage.setItem(Settings.NodeDataKey, data);
+          Expo.SecureStore.setItemAsync(Settings.NodeDataKey, data);
         }
       } catch(e) {
         console.error("Error parsing JSON data:");
@@ -142,7 +143,7 @@ export default class Settings extends React.Component {
   }
 
   onClearData = () => {
-    AsyncStorage.clear().then(() => {
+    Expo.SecureStore.deleteItemAsync(Settings.NodeDataKey).then(() => {
       this.showSnackbar("Tag data cleared!");
     })
   }

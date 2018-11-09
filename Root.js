@@ -17,10 +17,13 @@ import {
 // Local imports
 import TagNodeView from './TagNodeView';
 import Settings from './Settings';
+import TagContainer from './TagContainer';
+import SelectionDrawer from './SelectionDrawer';
 
 // Paper
 import {
   Appbar,
+  Button,
   DefaultTheme,
   Surface,
   FAB,
@@ -79,8 +82,11 @@ export default class Root extends React.Component {
   }
 
   handleBack = () => {
-    if (this.state.selectionState.length > 0) {
+    if (this.state.mode == 'selection') {
       this.cancelSelection();
+      return true;
+    } else if (this.state.mode == 'edit') {
+      this.setState({mode: 'none'});
       return true;
     }
     return false;
@@ -242,6 +248,7 @@ export default class Root extends React.Component {
     }
 
     let mode = selectionState.length ? 'selection' : 'none';
+    LayoutAnimation.easeInEaseOut();
     this.setState({selectionState, mode}, () => {
       this.shuffleSelection();
       this.props.screenProps.setDrawerLock(this.state.mode == 'selection');
@@ -346,6 +353,9 @@ export default class Root extends React.Component {
   }
 
   getSelectionWidget = () => {
+    return (
+      <SelectionDrawer open={this.state.mode == 'selection'} items={this.state.shuffledTags}/>
+    );
     let quotaNode = <View/>
     let quota = this.state.shuffledTags.length;
     if (maxTags != 0) {
@@ -385,9 +395,7 @@ export default class Root extends React.Component {
         }).start();
     }
     let idx = 0;
-    return (
-      <Surface style={{opacity: this.state.bottomDockSlideIn, elevation: elevateIn, width: '100%', height: slideUp}}>
-        <Paragraph style={{margin: 16}}>
+    /*        <View style={{margin: 16}}>
           {
             this.state.shuffledTags.length ? this.state.shuffledTags.reduce((acc, x)=> {
                 idx++;
@@ -395,7 +403,15 @@ export default class Root extends React.Component {
                 return acc;
               }, new Array()) : "Selection has no tags!"
           }
-        </Paragraph>
+        </View>
+*/
+    return (
+      <Surface style={{opacity: this.state.bottomDockSlideIn, elevation: elevateIn, width: '100%', height: slideUp}}>
+        <Button title="preview" onPress={() => {
+          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+          this.setState({selectionPreview: !this.state.selectionPreview})}
+        }>Hello</Button>
+        <TagContainer preview={this.state.selectionPreview} items={this.state.shuffledTags}/>
         <View style={styles.bottomFabContainer}>
           {quotaNode}
           <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
@@ -440,6 +456,9 @@ export default class Root extends React.Component {
             }
             </View>
           </ScrollView>
+          {
+            this.getSelectionWidget()
+          }
         </SafeAreaView>
       );
     } else {
@@ -494,9 +513,6 @@ export default class Root extends React.Component {
         {
           this.getContentView()
         }
-        {
-          this.getSelectionWidget()
-        }
         <Portal>
           <Snackbar
             duration={3000}
@@ -531,29 +547,3 @@ export default class Root extends React.Component {
     );
   }
 }
-
-const styles = StyleSheet.create({
-  fabContainer: {
-    margin: 8,
-    alignItems: 'center',
-    width: '100%',
-  },
-  bottomFabContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignContent: 'center',
-    justifyContent: 'center',
-    padding: 8,
-  },
-  bottomFab: {
-    margin: 8,
-  }
-});
-
-/*export default createStackNavigator({
-  Root: { screen: Root },
-  Edit: { screen: TagEditModal },
-});*/

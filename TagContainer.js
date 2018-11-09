@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { StyleSheet, View, StatusBar, PanResponder, Animated, Easing, TextInput } from 'react-native';
 
 // Local imports
@@ -6,13 +7,15 @@ import MeasuredView from './MeasuredView';
 
 //import { SafeAreaView } from 'react-navigation';
 // Paper
-import { DefaultTheme, Portal, Chip, withTheme } from "react-native-paper";
+import { DefaultTheme, Portal, Chip, withTheme, Paragraph } from "react-native-paper";
 
 "use strict";
 
-const AnimatedChip = Animated.createAnimatedComponent(Chip);
-
 class TagContainer extends React.Component {
+  static DefaultProps = {
+    preview: 'false',
+  }
+
   constructor(props) {
     super(props);
     
@@ -101,7 +104,7 @@ class TagContainer extends React.Component {
 
           var dragItem =             
             this.state.dragElem &&
-              <AnimatedChip 
+              <Chip
                 onClose={() => {}}
                 style={[
                   styles.tag,
@@ -112,7 +115,7 @@ class TagContainer extends React.Component {
                     left: Animated.add(this.state.panX, tagXOffset),
                     top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
                     margin: 0,
-              }]}>{this.state.dragElem}</AnimatedChip>
+              }]}>{this.state.dragElem}</Chip>
 
           // TODO: Is this OK?
           this.setState({topLevelView: dragItem});
@@ -224,22 +227,31 @@ class TagContainer extends React.Component {
   }
 
   render() {
+    let elementView = null;
+
+    if (this.props.preview) {
+      elementView = ({text, style}) => <View key={text} collapsable={false}><Paragraph style={style}>#{text} </Paragraph></View>;
+    } else {
+      elementView = ({text, style}) =>
+      <View key={text} collapsable={false}>
+      <MeasuredView
+          onStartShouldSetResponder={() => {this.setState({hitElem: text}); return true;}}
+          setDimensions={this.setTagDimensions} tag={text}>
+        <Chip
+          style={[styles.tag, this.state.dragElem === text && styles.movingTag]} 
+          responder={() => {}}
+          onClose={() => this.props.onRemoveItem(text)}>
+            {text}
+        </Chip>
+      </MeasuredView>
+      </View>
+    }
+
     return (
-      <View style={[styles.container, this.props.style]} {...this._panResponder.panHandlers}>
+      <View style={this.props.style} {...this._panResponder.panHandlers}>
         <View style={styles.flextainer}>
           {
-            this.props.items && this.props.items.map((x, idx) =>
-              <MeasuredView 
-                  onStartShouldSetResponder={() => {this.setState({hitElem: x}); return true;}}
-                  key={x} setDimensions={this.setTagDimensions} tag={x}>
-                <Chip
-                  style={[styles.tag, this.state.dragElem === x && styles.movingTag]} 
-                  responder={() => {}}
-                  onClose={() => this.props.onRemoveItem(x)}>
-                    {x}
-                </Chip>
-              </MeasuredView>
-            )
+            this.props.items && this.props.items.map(elementView)
           }
         </View>
         <Portal>
@@ -268,10 +280,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 3,
     height: 32,
-    elevation: 6,
-  },
-  container: {
-    flex: 1,
+    elevation: 4,
   },
   flextainer: {
     margin: 8,

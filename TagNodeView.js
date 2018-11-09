@@ -102,7 +102,7 @@ class TagNodeView extends React.Component {
     this.props.onHighPriority(this.path);
   }
 
-  getUtilityButtons = () => {
+  getUtilityButtons = (selected) => {
     switch (this.props.mode) {
       case 'selection': {
         let opacity = 0.25;
@@ -111,11 +111,9 @@ class TagNodeView extends React.Component {
           opacity = 1.0;
           color = 'red';
         }
-        return ([
-          <IconButton style={[styles.utilityButton, {opacity}]} key="1" color={color} onPress={this.onHighPriority} icon="priority-high"/>,
-          <IconButton style={styles.utilityButton} key="2" onPress={() => {}} icon="vertical-align-top"/>,
-          <IconButton style={styles.utilityButton} key="3" onPress={() => {}} icon="vertical-align-bottom"/>,
-        ]);
+        return (
+          selected && <IconButton style={[styles.utilityButton, {opacity}]} color={color} onPress={this.onHighPriority} icon="priority-high"/>
+        );
       }
       case 'edit':
         return ([
@@ -143,12 +141,6 @@ class TagNodeView extends React.Component {
       defaultAction =this.onExpandPress
     }
 
-    // |ˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉˉ|    |ˉˉˉˉˉˉˉˉˉˉˉˉˉ|
-    // | >               Title               ... | -> | Add Section |
-    // |                                         |    | Delete  ... |
-    // |  #foo #bar #baz                       > |
-    // | --------------------------------------- :
-    // ( Everything under is another TagNodeView )
     return (
       <Surface style={[styles.container, this.props.style, backgroundColor && {backgroundColor}]}>
         <TouchableRipple 
@@ -186,7 +178,7 @@ class TagNodeView extends React.Component {
                   <Title style={{color: '#f005', fontSize: 12}}> +{this.props.nodeData.children.length}</Title>
                 }
               </Title>
-              { this.getUtilityButtons() }
+              { this.getUtilityButtons(selected) }
             </View>
             { hasData && <Paragraph style={styles.tagsText}>{tagsText}</Paragraph> }
             <View>
