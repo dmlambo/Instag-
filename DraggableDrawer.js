@@ -32,45 +32,28 @@ export default class DraggableDrawer extends React.Component {
   constructor(props) {
     super(props);
 
-    this.backSubscription = BackHandler.addEventListener('hardwareBackPress', this.handleBack);
-
     this.state = {
       expanded: false,
     };
   }
 
-  handleBack = () => {
-    if (this.state.expanded) {
-      LayoutAnimation.easeInEaseOut();
-      this.setState({expanded: false});
-      return true;
-    }
-    return false;
-  }
-
-  componentWillUnmount() {
-    this.backSubscription && this.backSubscription.remove();
-  }
-
   render() {
     let sizeProps = this.props.open ? 
-      (this.state.expanded ? this.props.maxProps : this.props.minProps) :
+      (this.props.expanded ? this.props.maxProps : this.props.minProps) :
       closedProps;
 
-    let content = this.state.expanded ? this.props.contentMax : this.props.contentMin;
+    let content = this.props.expanded ? this.props.contentMax : this.props.contentMin;
+    let iconName = this.props.expanded ? 'keyboard-arrow-down' : 'keyboard-arrow-up';
     return (
-      <Surface collapsable={false} style={[styles.defaultStyle, this.props.style, sizeProps]}>
+      <Surface style={[styles.defaultStyle, this.props.style, sizeProps]}>
       {
         this.props.open &&
-        <TouchableWithoutFeedback style={{height: '100%'}} onPress={() => {
-          LayoutAnimation.easeInEaseOut();
-          this.setState({expanded: !this.state.expanded});
-        }}>
-          <View style={{flexDirection: 'column', alignItems: 'center'}}>
-            <Icon name="drag-handle" size={24}/>
-            { content }
-          </View>
-        </TouchableWithoutFeedback>
+        <View style={{flexDirection: 'column', alignItems: 'center'}}>
+          <TouchableWithoutFeedback onPress={this.props.onExpandPressed}>
+            <Icon name={iconName} size={24}/>
+          </TouchableWithoutFeedback>
+          { content }
+        </View>
       }
       </Surface>
     );
@@ -79,7 +62,7 @@ export default class DraggableDrawer extends React.Component {
 
 const styles = StyleSheet.create({
   defaultStyle: {
-    elevation: 4,
+    elevation: 5,
     backgroundColor: 'white',
   }
 })

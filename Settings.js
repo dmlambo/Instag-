@@ -40,6 +40,9 @@ export default class Settings extends React.Component {
     })
   }
   
+  static maxTagOptions = ["30", "60", "Unlimited"];
+  static maxTagValues = [30, 60, 0];
+
   static InitialData = {path: 'root', children: new Array()};
   static NodeDataKey = 'userDataRoot';
   static PreferencesKey = 'preferences';
@@ -87,6 +90,30 @@ export default class Settings extends React.Component {
     if (!jsonData || jsonData.path != 'root') {
       throw new Error("User data malformed!");
     }
+  }
+
+  static getNodeByPath = (path, node) => {
+    let pathCopy = path.slice(0);
+    let pathComponent = pathCopy.shift();
+
+    if (pathComponent != node.path) {
+      return null;
+    }
+
+    if (!pathCopy.length) {
+      return node;
+    }
+
+    for (i in node.children) {
+      let childNode = Settings.getNodeByPath(pathCopy, node.children[i]);
+      if (childNode) return childNode;
+    }
+
+    return null;
+  }
+
+  static createPathForNode = (props) => {
+    return Array.prototype.concat(props.parentPath, props.nodeData.path);
   }
 
   handleBack = () => {
@@ -156,8 +183,6 @@ export default class Settings extends React.Component {
   }
 
   getPicker = () => {
-    let options = ["30", "60", "Unlimited"];
-    let values = [30, 60, 0];
     let stateChange = (itemValue) => {
       let preferences = {copyLimit: itemValue};
       this.setState(preferences);
@@ -167,8 +192,8 @@ export default class Settings extends React.Component {
     if (Platform.OS == 'ios') {
       return ( 
         <Button title={this.state.value} onPress={() => ActionSheetIOS.showActionSheetWithOptions({
-          options,
-        }, (idx) => {stateChange(values[idx])})}/>
+          options: Settings.maxTagOptions,
+        }, (idx) => {stateChange(Settings.maxTagValues[idx])})}/>
       );
     } else {
       return (
@@ -177,8 +202,8 @@ export default class Settings extends React.Component {
           style={{ height: 30, width: 100 }}
           onValueChange={stateChange}>
           {
-            options.forEach((option, idx) => {
-              return <Picker.Item label={option} value={values[idx]}/>
+            Settings.maxTagOptions.forEach((option, idx) => {
+              return <Picker.Item label={option} value={Settings.maxTagValues[idx]}/>
             })
           }
         </Picker>            
@@ -200,7 +225,7 @@ export default class Settings extends React.Component {
         <ScrollView style={{flex:1}}>
           <List.Section title="Options">
           <List.Item
-            title="Item copy limit"
+            title="Default item copy limit"
             right={() => 
               <Picker
                 selectedValue={this.state.copyLimit}

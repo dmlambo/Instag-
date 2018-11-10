@@ -41,10 +41,10 @@ class TagContainer extends React.Component {
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         // Ugh. The gesture responder chain is all sorts of inadequate.
         // Just deal with this later.
-        var dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
+        let dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
         return (
           this.state.hitElem != undefined && 
-          this.tagPositions[this.state.hitElem] != undefined && 
+          this.tagPositions[this.state.hitElem.text] != undefined && 
           dist > 16 
         );
       },
@@ -53,24 +53,24 @@ class TagContainer extends React.Component {
         // gestureState.d{x,y} will be set to zero now
         console.log("Granted...");
 
-        var idx = this.props.items.indexOf(this.state.hitElem);
+        let idx = this.props.items.indexOf(this.state.hitElem);
 
         // Bind values
-        var x = evt.nativeEvent.pageX;
-        var y = evt.nativeEvent.pageY;
+        let x = evt.nativeEvent.pageX;
+        let y = evt.nativeEvent.pageY;
 
         console.log("Index of " + this.state.hitElem + " is " + idx);
 
         this.setState({dragElem: this.state.hitElem, items:this.props.items, fingerX: 0, fingerY: 0},
         () => {
-          var tagPosition = this.tagPositions[this.state.dragElem];
-          var tagXOffset = new Animated.Value(-tagPosition.width / 2);
-          var tagYOffset = new Animated.Value(-tagPosition.height / 2);
+          let tagPosition = this.tagPositions[this.state.dragElem.text];
+          let tagXOffset = new Animated.Value(-tagPosition.width / 2);
+          let tagYOffset = new Animated.Value(-tagPosition.height / 2);
           this.state.panX.setValue(x);
           this.state.panY.setValue(y);
 
           // Translate upwards so you can see what you're dragging
-          var pop = new Animated.Value(0);
+          let pop = new Animated.Value(0);
           Animated.timing(
             pop,
             {
@@ -80,7 +80,7 @@ class TagContainer extends React.Component {
             }
           ).start();
 
-          var expand = new Animated.Value(1.0);
+          let expand = new Animated.Value(1.0);
           Animated.loop(
             Animated.sequence([
               Animated.timing(
@@ -102,7 +102,7 @@ class TagContainer extends React.Component {
             ])
           ).start();
 
-          var dragItem =             
+          let dragItem =             
             this.state.dragElem &&
               <Chip
                 onClose={() => {}}
@@ -115,7 +115,7 @@ class TagContainer extends React.Component {
                     left: Animated.add(this.state.panX, tagXOffset),
                     top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
                     margin: 0,
-              }]}>{this.state.dragElem}</Chip>
+              }]}>{this.state.dragElem.text}</Chip>
 
           // TODO: Is this OK?
           this.setState({topLevelView: dragItem});
@@ -125,8 +125,8 @@ class TagContainer extends React.Component {
         {nativeEvent: {pageX: this.state.panX, pageY: this.state.panY}, }, 
         null],
         {listener: (evt, gestureState) => {
-          var swapTag = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
-          let tagPosition = this.tagPositions[swapTag.closest];
+          let swapTag = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          let tagPosition = this.tagPositions[swapTag.closest.text];
           let x = tagPosition.x - 2;
           let y = tagPosition.y;
 
@@ -150,7 +150,7 @@ class TagContainer extends React.Component {
 
         if (closest != this.state.dragElem) {
           let items = this.props.items.slice(0);
-          var idx = items.indexOf(this.state.dragElem);
+          let idx = items.indexOf(this.state.dragElem);
           items.splice(idx, 1);
           let closestIdx = items.indexOf(closest);
           items.splice(closestIdx+side, 0, this.state.dragElem);
@@ -189,32 +189,32 @@ class TagContainer extends React.Component {
       y += StatusBar.currentHeight;
     }
 
-    var centerX = x + width / 2.0;
-    var centerY = y + height / 2.0; 
+    let centerX = x + width / 2.0;
+    let centerY = y + height / 2.0; 
 
     //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
-    this.tagPositions[tag] = {x, y, centerX, centerY, width, height, upToDate: true};
+    this.tagPositions[tag.text] = {tag, x, y, centerX, centerY, width, height};
   }
 
   closestTest = (screenX, screenY) => {
     // Find closest to center of each tag. This has implications for long
     // tags next to short tags, with a selection bias towards the smaller.
-    var closestTag = Number.MAX_SAFE_INTEGER;
-    var closest = "";
-    var side = 0;
+    let closestTag = Number.MAX_SAFE_INTEGER;
+    let closest = null;
+    let side = 0;
 
     // offset Y so we can more easily see where it's being dropped
     let safeScreenY = screenY - 40;
 
-    for (var key in this.tagPositions) {
-      var val = this.tagPositions[key];
-      var distX = val.centerX - screenX;
-      var distY = val.centerY - safeScreenY;
-      var dist = Math.sqrt(distX * distX + distY * distY);
+    for (let key in this.tagPositions) {
+      let val = this.tagPositions[key];
+      let distX = val.centerX - screenX;
+      let distY = val.centerY - safeScreenY;
+      let dist = Math.sqrt(distX * distX + distY * distY);
 
       if (dist < closestTag) {
         closestTag = dist;
-        closest = key;
+        closest = val.tag;
         if (distX > 0) {
           side = 0;
         } else {
@@ -230,21 +230,38 @@ class TagContainer extends React.Component {
     let elementView = null;
 
     if (this.props.preview) {
-      elementView = ({text, style}) => <View key={text} collapsable={false}><Paragraph style={style}>#{text} </Paragraph></View>;
+      elementView = (item) => {
+        if (item.cull) {
+          return;
+        }
+        let opacityStyle = item.opacity ? {opacity: item.opacity} : {};
+        let colorStyle = item.color ? {color: item.color} : {};
+        return (
+          <View key={item.text} collapsable={false}><Paragraph collapsable={false} style={[colorStyle, opacityStyle]}>#{item.text} </Paragraph></View>
+        );
+      }
     } else {
-      elementView = ({text, style}) =>
-      <View key={text} collapsable={false}>
-      <MeasuredView
-          onStartShouldSetResponder={() => {this.setState({hitElem: text}); return true;}}
-          setDimensions={this.setTagDimensions} tag={text}>
-        <Chip
-          style={[styles.tag, this.state.dragElem === text && styles.movingTag]} 
-          responder={() => {}}
-          onClose={() => this.props.onRemoveItem(text)}>
-            {text}
-        </Chip>
-      </MeasuredView>
-      </View>
+      elementView = (item) => {
+        let text = item.text;
+        let color = item.color;
+        let opacity = item.opacity ? item.opacity : 1.0;
+        let backgroundColor = color ? {backgroundColor: color} : {};
+        return (
+          <View key={text + "2"} collapsable={false}>
+            <MeasuredView
+                collapsable={false}
+                onStartShouldSetResponder={() => {this.setState({hitElem: item}); return true;}}
+                setDimensions={this.setTagDimensions} tag={item}>
+              <Chip collapsable={false}
+                style={[styles.tag, this.state.dragElem === item && styles.movingTag, backgroundColor, {opacity}]} 
+                responder={() => {}}
+                onClose={() => this.props.onRemoveItem(item)}>
+                  {text}
+              </Chip>
+            </MeasuredView>
+          </View>
+        );
+      }
     }
 
     return (

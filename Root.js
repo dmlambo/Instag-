@@ -2,9 +2,7 @@ import React from 'react';
 
 import { 
   ActivityIndicator,
-  Clipboard, 
   Animated, 
-  Easing, 
   StyleSheet,
   LayoutAnimation, 
   BackHandler, 
@@ -17,17 +15,13 @@ import {
 // Local imports
 import TagNodeView from './TagNodeView';
 import Settings from './Settings';
-import TagContainer from './TagContainer';
 import SelectionDrawer from './SelectionDrawer';
 
 // Paper
 import {
   Appbar,
-  Button,
   DefaultTheme,
   Surface,
-  FAB,
-  Paragraph,
   Title,
   Snackbar,
   Portal,
@@ -35,8 +29,6 @@ import {
 } from 'react-native-paper';
 
 "use strict";
-
-let maxTags = 0;
 
 function random32bit() {
   // Use pseudorandom, the odds of colliding paths is tiny.
@@ -55,12 +47,9 @@ export default class Root extends React.Component {
     // nodeData = [{path: 'foo', children: [{path: 'bar'}]}, {path: 'baz'}]
     // selectedState = [['foo', 'bar'], ['baz']] // 'foo' is not selected
     this.state = {
-      shuffledTags: new Array(),
       selectionState: new Array(),
-      shuffle: false,
       nodeData: null,
       undoNodeData: null,
-      bottomDockSlideIn: new Animated.Value(0),
       undoSnackBarVisible: false,
       mode: 'none',
     };
@@ -83,6 +72,11 @@ export default class Root extends React.Component {
 
   handleBack = () => {
     if (this.state.mode == 'selection') {
+      if (this.state.drawerExpanded) {
+        LayoutAnimation.easeInEaseOut();
+        this.setState({drawerExpanded: false});
+        return true;  
+      }
       this.cancelSelection();
       return true;
     } else if (this.state.mode == 'edit') {
@@ -96,37 +90,22 @@ export default class Root extends React.Component {
     this.backSubscription && this.backSubscription.remove();
   }
 
+  onExpandDrawerPressed = () => {
+    LayoutAnimation.easeInEaseOut();
+    this.setState({drawerExpanded: !this.state.drawerExpanded});
+  }
+
   cancelSelection = () => {
+    this.selectionDrawer.selectionChanged(null, this.state.selectionState);
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    this.setState({selectionState: new Array(), mode: 'none'}, () => {
-      this.shuffleSelection();
+    this.setState({selectionState: new Array(), mode: 'none', drawerExpanded: false}, () => {
       this.props.screenProps.setDrawerLock(false);
     });
   }
 
-  getNodeByPath = (path, node) => {
-    let pathCopy = path.slice(0);
-    let pathComponent = pathCopy.shift();
-
-    if (pathComponent != node.path) {
-      return null;
-    }
-
-    if (!pathCopy.length) {
-      return node;
-    }
-
-    for (i in node.children) {
-      let childNode = this.getNodeByPath(pathCopy, node.children[i]);
-      if (childNode) return childNode;
-    }
-
-    return null;
-  }
-
   onEditNode = (path) => {
     console.log("Path is: " + path);
-    let node = this.getNodeByPath(path.slice(0), this.state.nodeData);
+    let node = Settings.getNodeByPath(path, this.state.nodeData);
     this.props.navigation.push("Edit", {...node, path, onSubmitted: this.onEditSubmitted});
   }
   
@@ -138,7 +117,7 @@ export default class Root extends React.Component {
     let oldStateJSON = JSON.stringify(this.state.nodeData);
     let newState = JSON.parse(oldStateJSON);
     let nodePath = path.pop();
-    let parentNode = this.getNodeByPath(path, newState);
+    let parentNode = Settings.getNodeByPath(path, newState);
     let nodeIdx = parentNode.children.findIndex((value) => {
       return value.path == nodePath;
     });
@@ -151,7 +130,7 @@ export default class Root extends React.Component {
   onEditSubmitted = (path, newItems, title) => {
     let oldStateJSON = JSON.stringify(this.state.nodeData);
     let newState = JSON.parse(oldStateJSON);
-    let node = this.getNodeByPath(path, newState);
+    let node = Settings.getNodeByPath(path, newState);
 
     // Early out if nothing is entered.
     if (node == undefined && newItems.length == 0 && title == undefined) {
@@ -166,7 +145,7 @@ export default class Root extends React.Component {
         data: newItems,
         title: title,
       }
-      let parent = this.getNodeByPath(path, newState);
+      let parent = Settings.getNodeByPath(path, newState);
       parent.children.push(node);
     } else {
       node.data = newItems;
@@ -182,7 +161,7 @@ export default class Root extends React.Component {
   onHighPriorityNode = (path) => {
     let oldStateJSON = JSON.stringify(this.state.nodeData);
     let newState = JSON.parse(oldStateJSON);
-    let node = this.getNodeByPath(path, newState);
+    let node = Settings.getNodeByPath(path, newState);
     node.highPriority = !node.highPriority;
 
     // If it was selected, we need to remove it from the list, and readd at the
@@ -191,7 +170,9 @@ export default class Root extends React.Component {
     var nodeIdx = this.state.selectionState.indexOf(path);
     
     if (nodeIdx != -1) {
+
       selectionState.splice(nodeIdx, 1);
+      this.selectionDrawer.selectionChanged([{path, node}], [path]);
       if (node.highPriority) {
         selectionState.unshift(path);
       } else {
@@ -201,7 +182,6 @@ export default class Root extends React.Component {
 
     this.setState({nodeData: newState, selectionState}, () => {
       Settings.saveNodeData(this.state.nodeData);
-      this.shuffleSelection();
     });  
   }
 
@@ -237,187 +217,38 @@ export default class Root extends React.Component {
     
     // Flip flop selection
     if (nodeIdx == -1) {
-      let node = this.getNodeByPath(path, this.state.nodeData);
+      let node = Settings.getNodeByPath(path, this.state.nodeData);
       if (node.highPriority) {
         selectionState.unshift(path);
       } else {
         selectionState.push(path);
       }
+      this.selectionDrawer.selectionChanged([{path, node}]);
     } else {
       selectionState.splice(nodeIdx, 1);
+      this.selectionDrawer.selectionChanged(null, [path]);
     }
 
     let mode = selectionState.length ? 'selection' : 'none';
     LayoutAnimation.easeInEaseOut();
     this.setState({selectionState, mode}, () => {
-      this.shuffleSelection();
       this.props.screenProps.setDrawerLock(this.state.mode == 'selection');
     });
-  }
-
-  createPathForNode = (props) => {
-    return Array.prototype.concat(props.parentPath, props.nodeData.path);
   }
 
   selectedPredicate = (path) => {
     return this.state.selectionState.indexOf(path) != -1;
   }
 
-  shuffle = (arr, start, end) => {
-    for (let i = start; i < end; i++) {
-      let startIdx = i;
-      let span = end - startIdx;
-      let element = startIdx + Math.floor(Math.random() * span);
-      let temp = arr[i];
-      arr[i] = arr[element];
-      arr[element] = temp;
-    }
-  }
-
-  shuffleSelection = () => {
-    const highPriStyle = {color: 'red', fontWeight: 'bold'};
-    const lowPriStyle = {};
-    const truncatedStyle = {color: 'gray'};
-
-    if (this.state.selectionState.length > 0) {
-      // To transform the tags into a copyable string, we follow these steps:
-      // 1. Remove duplicates
-      // 2. Shuffle low-priority tags
-      // 3. Truncate low-priority tags to shore up the numbers
-      // 4. Randomize this new list
-      // 5. Display high priority in one colour, low in another, and truncated a third
-      let highPriIdx = 0; // For shuffling.
-      let selectedData = this.state.selectionState.reduce((acc, value, idx) => {
-        let node = this.getNodeByPath(value, this.state.nodeData);
-        if (node.data) {
-          return acc.concat(node.data.map(x => { 
-            return {
-              text: x, 
-              style: node.highPriority ? highPriStyle : lowPriStyle
-            };
-          }));
-        } else {
-          return acc;
-        }
-      }, new Array());
-
-      // Since all high priority tags are at the top of the list, this prefers them.
-      let duplicatesRemoved = selectedData.reduce((acc, value) => {
-        if (acc.findIndex(x => { return value.text == x.text; }) != -1) {
-          return acc;
-        } else {
-          if (value.style == highPriStyle) highPriIdx++;
-          return acc.concat(value);
-        }
-      }, new Array());
-
-      if (this.state.shuffle) {
-        // Shuffle high priority tags
-        this.shuffle(duplicatesRemoved, 0, highPriIdx);
-
-        // Shuffle low priority tags
-        this.shuffle(duplicatesRemoved, highPriIdx, duplicatesRemoved.length);
-
-        // Shuffle first n tags
-        let truncationLength = Math.min(maxTags, duplicatesRemoved.length);
-        this.shuffle(duplicatesRemoved, 0, truncationLength);
-      }
-
-      // Truncate
-      for (let i = maxTags; i < duplicatesRemoved.length; i++) {
-        duplicatesRemoved[i].style = truncatedStyle;
-      }
-
-      this.setState({shuffledTags: duplicatesRemoved});
-    }   
-  }
-
-  onShuffle = () => {
-    this.setState({shuffle: !this.state.shuffle}, (prev) => { 
-      this.shuffleSelection();
-    });
-  }
-
-  copyTags = () => {
-    let firstNTags = this.state.shuffledTags;
-    if (maxTags) {
-      firstNTags = firstNTags.slice(0, maxTags);
-    }
-    let tagsString = firstNTags.reduce((acc, x) => {
-      return acc + "#" + x.text + " ";
-    }, "");
-    console.log("Copying to clipboad:");
-    console.log(tagsString);
-    Clipboard.setString(tagsString);
-    this.setState({copiedSnackbarVisible: true})
-  }
-
   getSelectionWidget = () => {
     return (
-      <SelectionDrawer open={this.state.mode == 'selection'} items={this.state.shuffledTags}/>
-    );
-    let quotaNode = <View/>
-    let quota = this.state.shuffledTags.length;
-    if (maxTags != 0) {
-      if (quota > maxTags) {
-        quota = maxTags;
-      }
-      let quotaStyle = {};
-      if (quota == maxTags) {
-        quotaStyle = {color: '#3f3'};
-      }
-      quotaNode = <Paragraph style={quotaStyle}>{quota}<Paragraph>/{maxTags}</Paragraph></Paragraph>
-    }
-    let slideUp = this.state.bottomDockSlideIn.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 180],
-    });
-    let elevateIn = this.state.bottomDockSlideIn.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0, 10],
-    });
-
-    if (this.state.selectionState.length > 0) {
-      Animated.timing(
-        this.state.bottomDockSlideIn,
-        {
-          toValue: 1,
-          duration: 250,
-          easing: Easing.out(Easing.cubic),
-        }).start();
-    } else {
-      Animated.timing(
-        this.state.bottomDockSlideIn,
-        {
-          toValue: 0,
-          duration: 200,
-          easing: Easing.out(Easing.cubic),
-        }).start();
-    }
-    let idx = 0;
-    /*        <View style={{margin: 16}}>
-          {
-            this.state.shuffledTags.length ? this.state.shuffledTags.reduce((acc, x)=> {
-                idx++;
-                acc.push(<Paragraph key={idx} style={x.style}>{"#" + x.text + " "}</Paragraph>);
-                return acc;
-              }, new Array()) : "Selection has no tags!"
-          }
-        </View>
-*/
-    return (
-      <Surface style={{opacity: this.state.bottomDockSlideIn, elevation: elevateIn, width: '100%', height: slideUp}}>
-        <Button title="preview" onPress={() => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-          this.setState({selectionPreview: !this.state.selectionPreview})}
-        }>Hello</Button>
-        <TagContainer preview={this.state.selectionPreview} items={this.state.shuffledTags}/>
-        <View style={styles.bottomFabContainer}>
-          {quotaNode}
-          <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
-          <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
-        </View>
-      </Surface>
+      <SelectionDrawer 
+        open={this.state.selectionState.length > 0}
+        ref={x => this.selectionDrawer = x}
+        onExpandPressed={this.onExpandDrawerPressed} 
+        expanded={this.state.drawerExpanded} 
+        selectionState={this.state.selectionState}
+        nodeData={this.state.nodeData}/>
     );
   }
 
@@ -441,7 +272,7 @@ export default class Root extends React.Component {
                   onHighPriority={this.onHighPriorityNode}
                   mode={this.state.mode}
                   nodeData={child}
-                  pathForNode={this.createPathForNode}
+                  pathForNode={Settings.createPathForNode}
                   selectedPredicate={this.selectedPredicate}
                   parentPath={new Array(this.state.nodeData.path)}/>
               )
@@ -526,21 +357,6 @@ export default class Root extends React.Component {
             }}
           >
             Tags deleted
-          </Snackbar>
-          <Snackbar
-            duration={1500}
-            visible={this.state.copiedSnackbarVisible}
-            onDismiss={() => this.setState({copiedSnackbarVisible: false})}
-            action={{
-              label: 'Dismiss',
-              onPress: () => {
-                this.setState({copiedSnackbarVisible: false}, () => {
-                  Settings.saveNodeData(this.state.nodeData);
-                })
-              },
-            }}
-          >
-            Tags copied to clipboard!
           </Snackbar>
         </Portal>
       </View>
