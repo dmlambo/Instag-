@@ -1,11 +1,17 @@
 import React from 'react';
-import { SafeAreaView, View } from 'react-native';
+
+import { 
+  SafeAreaView, 
+  View,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 
 // Local Imports
 import TagEditorView from './TagEditorView'
 
 // Paper
-import { Appbar, TextInput } from "react-native-paper";
+import { Appbar, FAB, TextInput } from "react-native-paper";
 
 'use strict';
 
@@ -33,7 +39,7 @@ export default class TagEditModal extends React.Component {
   }
 
   onAddItems = (items) => {
-    this.setState({items: this.state.items.concat(items)});
+    this.setState({items: this.state.items.concat(items), editModalVisible: false});
   }
 
   onReorderItems = (items, callback) => {
@@ -69,11 +75,28 @@ export default class TagEditModal extends React.Component {
               autoFocus={!this.state.title}
               onChangeText={(x) => { this.setState({title: x})}}
               />
-            <View style={{margin: 8, borderWidth: 1, borderRadius: 4, borderColor: "#0004", flex: 1}}>
-              <TagEditorView style={{width: '100%', height: '100%'}} items={this.state.items.map(x => {return {text: x}})} onRemoveItem={this.onRemove} onAddItems={this.onAddItems} onReorderItems={this.onReorderItems}/>
-            </View>
+            <ScrollView style={{margin: 8, borderWidth: 1, borderRadius: 4, borderColor: "#0004", flex: 1}}>
+              <TagEditorView 
+                style={{width: '100%', height: '100%'}} 
+                items={this.state.items.map(x => {return {text: x}})} 
+                onRemoveItem={this.onRemove} 
+                onAddItems={this.onAddItems} 
+                onReorderItems={this.onReorderItems}
+                editModalVisible={this.state.editModalVisible} 
+                onRequestModalClose={() => this.setState({editModalVisible: false})}/>
+            </ScrollView>
+            <FAB style={styles.bottomFab} icon="add" onPress={() => this.setState({editModalVisible: true})}/>
           </SafeAreaView>
         </View>
     );
   }
 };
+
+const styles = StyleSheet.create({
+  bottomFab: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    margin: 16,
+  },
+})

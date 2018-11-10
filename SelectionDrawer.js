@@ -6,6 +6,7 @@ import {
   StyleSheet,
   View, 
   Text,
+  ScrollView,
 } from 'react-native';
 
 import {
@@ -189,12 +190,16 @@ export default class SelectionDrawer extends React.Component {
     let quota = this.state.shuffledTags && this.state.shuffledTags.length;
 
     let previewComponents = 
+      <ScrollView >
         <TagContainer 
           preview
           style={{width: '100%', height: '100%'}}
           items={this.state.shuffledTags} 
           onReorderItems={() => {}}/>
+        <View style={{height: 80}}/>
+      </ScrollView>
     let chipComponents = 
+      <ScrollView >
         <TagEditorView 
           style={{width: '100%', height: '100%'}} 
           items={this.state.shuffledTags} 
@@ -203,6 +208,8 @@ export default class SelectionDrawer extends React.Component {
           onReorderItems={this.onReorderItems}
           editModalVisible={this.state.editModalVisible} 
           onRequestModalClose={() => this.setState({editModalVisible: false})}/>
+        <View style={{height: 80}}/>
+      </ScrollView>
 
     return (
       <View>

@@ -24,7 +24,6 @@ class TagContainer extends React.Component {
       panX: new Animated.Value(0),
       panY: new Animated.Value(0),
       dragElem: undefined,
-      hitElem: undefined,
       topLevelView: undefined,
       caret: undefined,
     };
@@ -36,16 +35,20 @@ class TagContainer extends React.Component {
     // in the visual tree without losing the gesture. (Possible bug: 
     // terminate/release is not called)
     this._panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gestureState) => false,
+      onStartShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          this.hitElem != undefined && 
+          this.tagPositions[this.hitElem.text] != undefined //&& 
+        )},
       onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         // Ugh. The gesture responder chain is all sorts of inadequate.
         // Just deal with this later.
         let dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
         return (
-          this.state.hitElem != undefined && 
-          this.tagPositions[this.state.hitElem.text] != undefined && 
-          dist > 16 
+          this.hitElem != undefined && 
+          this.tagPositions[this.hitElem.text] != undefined //&& 
+          //dist > 16
         );
       },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => false,
@@ -53,15 +56,15 @@ class TagContainer extends React.Component {
         // gestureState.d{x,y} will be set to zero now
         console.log("Granted...");
 
-        let idx = this.props.items.indexOf(this.state.hitElem);
+        let idx = this.props.items.indexOf(this.hitElem);
 
         // Bind values
         let x = evt.nativeEvent.pageX;
         let y = evt.nativeEvent.pageY;
 
-        console.log("Index of " + this.state.hitElem + " is " + idx);
+        console.log("Index of " + this.hitElem + " is " + idx);
 
-        this.setState({dragElem: this.state.hitElem, items:this.props.items, fingerX: 0, fingerY: 0},
+        this.setState({dragElem: this.hitElem, items:this.props.items, fingerX: 0, fingerY: 0},
         () => {
           let tagPosition = this.tagPositions[this.state.dragElem.text];
           let tagXOffset = new Animated.Value(-tagPosition.width / 2);
@@ -157,9 +160,10 @@ class TagContainer extends React.Component {
           this.props.onReorderItems(items);
         }
 
+        this.hitElem = undefined;
+
         this.setState({
           dragElem: undefined, 
-          hitElem: undefined,
           closest: undefined, 
           topLevelView: undefined,
           swapTag: undefined,
@@ -169,6 +173,7 @@ class TagContainer extends React.Component {
       },
       onPanResponderTerminate: (evt, gestureState) => {
         console.log("Terminate...");
+        this.hitElem = undefined;
         this.setState({
           dragElem: undefined, 
           hitElem: undefined,
@@ -250,7 +255,7 @@ class TagContainer extends React.Component {
           <View key={text + "2"} collapsable={false}>
             <MeasuredView
                 collapsable={false}
-                onStartShouldSetResponder={() => {this.setState({hitElem: item}); return true;}}
+                onStartShouldSetResponder={() => {this.hitElem = item; return true;}}
                 setDimensions={this.setTagDimensions} tag={item}>
               <Chip collapsable={false}
                 style={[styles.tag, this.state.dragElem === item && styles.movingTag, backgroundColor, {opacity}]} 
