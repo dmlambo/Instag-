@@ -1,27 +1,26 @@
 import PropTypes from 'prop-types';
 
 import React from 'react';
-import { View } from 'react-native';
+import { findNodeHandle, View } from 'react-native';
 
 "use strict";
 
-export default class MeasuredView extends React.Component {
+export default class MeasuredView extends React.PureComponent {
 	static propTypes = {
 		setDimensions: PropTypes.func.isRequired,
 	}
 
 	onLayout = (nativeEvent) => {
 		if (this.element != undefined) {
-			setTimeout(() => {
-				this.element.measureInWindow(this.onMeasure);
-			}, 300); // Animations. Ugh.
+			let view = findNodeHandle(this.props.fromView());
+			this.element.measureLayout(view, this.onMeasure, (x) => {console.error(x)});
 		} else {
 			console.log("No reference to tag");
 		}
 	};
 
-	onMeasure = (x, y, width, height) => {
-		this.props.setDimensions(this.props.tag, x, y, width, height);
+	onMeasure = (x, y, width, height, pageX, pageY) => {
+		this.props.setDimensions(this.props.tag, x, y, width, height, pageX, pageY);
 	};
 
 	render() {

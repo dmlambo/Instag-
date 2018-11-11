@@ -19,7 +19,7 @@ const closedProps = {
   height: 1,
 }
 
-export default class DraggableDrawer extends React.Component {
+export default class DraggableDrawer extends React.PureComponent {
   static defaultProps = {
     minProps: {
       height: 200,
@@ -48,10 +48,11 @@ export default class DraggableDrawer extends React.Component {
       <Surface style={[styles.defaultStyle, this.props.style, sizeProps]}>
       {
         this.props.open &&
-        <View style={{flexDirection: 'column', alignItems: 'center'}}>
+        <View style={{flexDirection: 'column'}}>
           <TouchableWithoutFeedback onPress={this.props.onExpandPressed}>
-            <Icon name={iconName} size={24}/>
+            <Icon style={{textAlign: 'center'}} name={iconName} size={24}/>
           </TouchableWithoutFeedback>
+          <Divider/>
           { content }
         </View>
       }

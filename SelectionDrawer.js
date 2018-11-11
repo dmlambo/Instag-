@@ -22,7 +22,7 @@ import TagContainer from './TagContainer';
 import Settings from './Settings';
 import TagEditorView from './TagEditorView';
 
-export default class SelectionDrawer extends React.Component {
+export default class SelectionDrawer extends React.PureComponent {
   constructor(props) {
     super(props);
 
@@ -187,29 +187,25 @@ export default class SelectionDrawer extends React.Component {
   }
 
   render() {
-    let quota = this.state.shuffledTags && this.state.shuffledTags.length;
+    let quota = this.state.shuffledTags && 
+      this.state.shuffledTags.length > this.state.maxTags ? this.state.maxTags : this.state.shuffledTags.length;
 
     let previewComponents = 
-      <ScrollView >
-        <TagContainer 
-          preview
-          style={{width: '100%', height: '100%'}}
-          items={this.state.shuffledTags} 
-          onReorderItems={() => {}}/>
-        <View style={{height: 80}}/>
-      </ScrollView>
+      <TagContainer 
+        preview
+        stylePredicate={(item, idx) => idx && this.state.maxTags > 0 && idx >= this.state.maxTags && {opacity: 0.1}}
+        style={{width: '100%', height: '100%'}}
+        items={this.state.shuffledTags} 
+        onReorderItems={() => {}}/>
     let chipComponents = 
-      <ScrollView >
-        <TagEditorView 
-          style={{width: '100%', height: '100%'}} 
-          items={this.state.shuffledTags} 
-          onRemoveItem={this.onRemove} 
-          onAddItems={this.onAddItems}
-          onReorderItems={this.onReorderItems}
-          editModalVisible={this.state.editModalVisible} 
-          onRequestModalClose={() => this.setState({editModalVisible: false})}/>
-        <View style={{height: 80}}/>
-      </ScrollView>
+      <TagEditorView 
+        style={{width: '100%', height: '100%'}} 
+        items={this.state.shuffledTags} 
+        onRemoveItem={this.onRemove} 
+        onAddItems={this.onAddItems}
+        onReorderItems={this.onReorderItems}
+        editModalVisible={this.state.editModalVisible} 
+        onRequestModalClose={() => this.setState({editModalVisible: false})}/>
 
     return (
       <View>

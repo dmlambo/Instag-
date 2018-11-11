@@ -1,6 +1,14 @@
 import React from 'react';
 
-import { StyleSheet, View, StatusBar, PanResponder, Animated, Easing, TextInput } from 'react-native';
+import { 
+  StyleSheet, 
+  View, 
+  StatusBar, 
+  PanResponder,
+  Animated,
+  ScrollView,
+  Easing, 
+} from 'react-native';
 
 // Local imports
 import MeasuredView from './MeasuredView';
@@ -11,11 +19,7 @@ import { DefaultTheme, Portal, Chip, withTheme, Paragraph } from "react-native-p
 
 "use strict";
 
-class TagContainer extends React.Component {
-  static DefaultProps = {
-    preview: 'false',
-  }
-
+class TagContainer extends React.PureComponent {
   constructor(props) {
     super(props);
     
@@ -26,6 +30,7 @@ class TagContainer extends React.Component {
       dragElem: undefined,
       topLevelView: undefined,
       caret: undefined,
+      scrollEnabled: true,
     };
     this.tagPositions = {};
 
@@ -36,26 +41,41 @@ class TagContainer extends React.Component {
     // terminate/release is not called)
     this._panResponder = PanResponder.create({
       onStartShouldSetPanResponder: (evt, gestureState) => {
-        return (
-          this.hitElem != undefined && 
-          this.tagPositions[this.hitElem.text] != undefined //&& 
-        )},
+        let shouldSet = this.hitElem != undefined && 
+          this.tagPositions[this.hitElem.text] != undefined; 
+
+        if(shouldSet) {
+          this.scrollView.setNativeProps({scrollEnabled: false});
+          console.log("Should set")
+        } else {
+          console.log("Shouldn't set")
+        }
+
+        return shouldSet;
+      },
       onStartShouldSetPanResponderCapture: (evt, gestureState) => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         // Ugh. The gesture responder chain is all sorts of inadequate.
-        // Just deal with this later.
         let dist = Math.sqrt(gestureState.dx * gestureState.dx + gestureState.dy * gestureState.dy);
-        return (
-          this.hitElem != undefined && 
+        let shouldSet = this.hitElem != undefined && 
           this.tagPositions[this.hitElem.text] != undefined //&& 
           //dist > 16
-        );
+        
+        if(shouldSet) {
+          this.scrollView.setNativeProps({scrollEnabled: false});
+          console.log("Should set on move")
+        } else {
+          console.log("Shouldn't set on move")
+        }
+
+        return shouldSet;
       },
       onMoveShouldSetPanResponderCapture: (evt, gestureState) => false,
       onPanResponderGrant: (evt, gestureState) => {
         // gestureState.d{x,y} will be set to zero now
         console.log("Granted...");
 
+        this.scrollView.setNativeProps({scrollEnabled: false});
         let idx = this.props.items.indexOf(this.hitElem);
 
         // Bind values
@@ -128,7 +148,7 @@ class TagContainer extends React.Component {
         {nativeEvent: {pageX: this.state.panX, pageY: this.state.panY}, }, 
         null],
         {listener: (evt, gestureState) => {
-          let swapTag = this.closestTest(evt.nativeEvent.pageX, evt.nativeEvent.pageY);
+          let swapTag = this.closestTest(evt.nativeEvent.locationX, evt.nativeEvent.locationY);
           let tagPosition = this.tagPositions[swapTag.closest.text];
           let x = tagPosition.x - 2;
           let y = tagPosition.y;
@@ -145,7 +165,7 @@ class TagContainer extends React.Component {
           this.setState({caret, swapTag});
         }}
       ),
-      onPanResponderTerminationRequest: (evt, gestureState) => true,
+      onPanResponderTerminationRequest: (evt, gestureState) => false,
       onPanResponderRelease: (evt, gestureState) => {
         console.log("Release...");
 
@@ -162,6 +182,8 @@ class TagContainer extends React.Component {
 
         this.hitElem = undefined;
 
+        this.scrollView.setNativeProps({scrollEnabled: true});
+
         this.setState({
           dragElem: undefined, 
           closest: undefined, 
@@ -174,9 +196,11 @@ class TagContainer extends React.Component {
       onPanResponderTerminate: (evt, gestureState) => {
         console.log("Terminate...");
         this.hitElem = undefined;
+
+        this.scrollView.setNativeProps({scrollEnabled: true});
+
         this.setState({
           dragElem: undefined, 
-          hitElem: undefined,
           closest: undefined, 
           topLevelView: undefined,
           swapTag: undefined,
@@ -187,18 +211,12 @@ class TagContainer extends React.Component {
     });
   }
 
-  setTagDimensions = (tag, x, y, width, height) => {
-    // TODO: Padding and margins don't stack on the edges of the
-    // buttons, so we need a smarter fat-fingers test.
-    if (StatusBar.currentHeight) {
-      y += StatusBar.currentHeight;
-    }
-
+  setTagDimensions = (tag, x, y, width, height, pageX, pageY) => {
     let centerX = x + width / 2.0;
     let centerY = y + height / 2.0; 
 
     //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
-    this.tagPositions[tag.text] = {tag, x, y, centerX, centerY, width, height};
+    this.tagPositions[tag.text] = {tag, x, y, centerX, centerY, width, height, pageX, pageY};
   }
 
   closestTest = (screenX, screenY) => {
@@ -235,50 +253,53 @@ class TagContainer extends React.Component {
     let elementView = null;
 
     if (this.props.preview) {
-      elementView = (item) => {
+      elementView = (item, idx) => {
         if (item.cull) {
           return;
         }
         let opacityStyle = item.opacity ? {opacity: item.opacity} : {};
         let colorStyle = item.color ? {color: item.color} : {};
+        let additionalStyle = this.props.stylePredicate ? 
+          this.props.stylePredicate(item, idx) : {};
         return (
-          <View key={item.text} collapsable={false}><Paragraph collapsable={false} style={[colorStyle, opacityStyle]}>#{item.text} </Paragraph></View>
+          <View key={item.text} collapsable={false}><Paragraph collapsable={false} style={[colorStyle, opacityStyle, additionalStyle]}>#{item.text} </Paragraph></View>
         );
       }
     } else {
-      elementView = (item) => {
+      elementView = (item, idx) => {
         let text = item.text;
         let color = item.color;
         let opacity = item.opacity ? item.opacity : 1.0;
         let backgroundColor = color ? {backgroundColor: color} : {};
+        //let additionalStyle = this.props.stylePredicate ? 
+          //this.props.stylePredicate(item, idx) : {};
         return (
-          <View key={text + "2"} collapsable={false}>
-            <MeasuredView
-                collapsable={false}
-                onStartShouldSetResponder={() => {this.hitElem = item; return true;}}
-                setDimensions={this.setTagDimensions} tag={item}>
-              <Chip collapsable={false}
-                style={[styles.tag, this.state.dragElem === item && styles.movingTag, backgroundColor, {opacity}]} 
-                responder={() => {}}
-                onClose={() => this.props.onRemoveItem(item)}>
-                  {text}
-              </Chip>
-            </MeasuredView>
-          </View>
+          <MeasuredView
+              fromView={()=>this.parentView}
+              key={text}
+              collapsable={false}
+              onStartShouldSetResponder={() => {this.hitElem = item; this.scrollView.setNativeProps({scrollEnabled: false}); return false;}}
+              setDimensions={this.setTagDimensions} tag={item}>
+            <Chip collapsable={false}
+              style={[styles.tag, this.state.dragElem === item && styles.movingTag, backgroundColor, {opacity}]} 
+              responder={() => {}}
+              onClose={() => this.props.onRemoveItem(item)}>
+                {text}
+            </Chip>
+          </MeasuredView>
         );
       }
     }
 
     return (
-      <View style={this.props.style} {...this._panResponder.panHandlers}>
-        <View style={styles.flextainer}>
+      <ScrollView style={this.props.style} ref={x => this.scrollView = x} contentContainerStyle={{paddingBottom: 80}}>
+        <View style={styles.flextainer} {...this._panResponder.panHandlers} ref={x => this.parentView = x}>
           {
             this.props.items && this.props.items.map(elementView)
           }
-        </View>
-        <Portal>
-          {this.state.topLevelView}
-          { this.state.caret && <View
+          { 
+            this.state.caret &&
+            <View
               style={{position: 'absolute',
               top: this.state.caret.y,
               left: this.state.caret.x,
@@ -286,10 +307,33 @@ class TagContainer extends React.Component {
               height: 36,
               backgroundColor: DefaultTheme.colors.accent,
               borderRadius: 2,
-              opacity: 0.5,
-          }}/> }
+              opacity: 0.5, }}
+              /> 
+          }
+          
+          {
+            // Debug
+            /* Object.keys(this.tagPositions).map(x => {
+              item = this.tagPositions[x];
+              return (
+              <View 
+                key={x}
+                style={{
+                  opacity: 0.25, 
+                  backgroundColor: 'blue', 
+                  position: 'absolute', 
+                  width: 5, 
+                  height: 5, 
+                  left: item.centerX, 
+                  top: item.centerY}}/>
+              );
+            })*/
+          }
+        </View>
+        <Portal>
+          {this.state.topLevelView}
         </Portal>
-      </View>
+      </ScrollView>
     );
   }
 }
@@ -306,7 +350,6 @@ const styles = StyleSheet.create({
   },
   flextainer: {
     margin: 8,
-    flex: 1,
     flexWrap: 'wrap',
     flexDirection: 'row',
     alignItems: 'flex-start',

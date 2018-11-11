@@ -311,7 +311,14 @@ export default class Root extends React.Component {
     selection: {
       title: "Select Tag",
       backgroundColor: DefaultTheme.colors.accent,
-      action: () => this.cancelSelection(),
+      action: () => {
+        if (this.state.drawerExpanded)
+        { 
+          LayoutAnimation.easeInEaseOut();
+          this.setState({drawerExpanded: false}); 
+        } else { 
+          this.cancelSelection()
+        }},
       icon: "cancel",
     },
     edit: {
