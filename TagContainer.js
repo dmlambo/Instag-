@@ -47,9 +47,6 @@ class TagContainer extends React.PureComponent {
 
         if(shouldSet) {
           this.scrollView.setNativeProps({scrollEnabled: false});
-          console.log("Should set")
-        } else {
-          console.log("Shouldn't set")
         }
 
         return shouldSet;
@@ -64,9 +61,6 @@ class TagContainer extends React.PureComponent {
         
         if(shouldSet) {
           this.scrollView.setNativeProps({scrollEnabled: false});
-          console.log("Should set on move")
-        } else {
-          console.log("Shouldn't set on move")
         }
 
         return shouldSet;
@@ -82,8 +76,6 @@ class TagContainer extends React.PureComponent {
         // Bind values
         let x = evt.nativeEvent.pageX;
         let y = evt.nativeEvent.pageY;
-
-        console.log("Index of " + this.hitElem + " is " + idx);
 
         this.setState({dragElem: this.hitElem, items:this.props.items, fingerX: 0, fingerY: 0},
         () => {
@@ -177,15 +169,17 @@ class TagContainer extends React.PureComponent {
       onPanResponderRelease: (evt, gestureState) => {
         console.log("Release...");
 
-        let {closest, side} = this.state.swapTag;
+        if (this.state.swapTag) {
+          let {closest, side} = this.state.swapTag;
 
-        if (closest != this.state.dragElem) {
-          let items = this.props.items.slice(0);
-          let idx = items.indexOf(this.state.dragElem);
-          items.splice(idx, 1);
-          let closestIdx = items.indexOf(closest);
-          items.splice(closestIdx+side, 0, this.state.dragElem);
-          this.props.onReorderItems(items);
+          if (closest != this.state.dragElem) {
+            let items = this.props.items.slice(0);
+            let idx = items.indexOf(this.state.dragElem);
+            items.splice(idx, 1);
+            let closestIdx = items.indexOf(closest);
+            items.splice(closestIdx+side, 0, this.state.dragElem);
+            this.props.onReorderItems(items);
+          }
         }
 
         this.hitElem = undefined;
@@ -199,7 +193,6 @@ class TagContainer extends React.PureComponent {
           swapTag: undefined,
           caret: undefined,
         });
-        // Gesture succeeded, so figure out where to put it in the list.
       },
       onPanResponderTerminate: (evt, gestureState) => {
         console.log("Terminate...");

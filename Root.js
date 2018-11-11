@@ -303,7 +303,7 @@ export default class Root extends React.Component {
 
   appBarModeParams = {
     none: {
-      title: "Taggy McTagface",
+      title: "Tagerty",
       backgroundColor: DefaultTheme.colors.primary,
       action: () => this.props.navigation.replace("Settings"),
       icon: "settings",
