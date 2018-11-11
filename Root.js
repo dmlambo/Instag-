@@ -319,7 +319,9 @@ export default class Root extends React.Component {
         } else { 
           this.cancelSelection()
         }},
-      icon: "cancel",
+      icon: () => 
+        this.state.drawerExpanded ? 
+        "arrow-back" : "cancel",
     },
     edit: {
       title: "Edit List",
@@ -336,7 +338,7 @@ export default class Root extends React.Component {
         <Appbar.Header style={{backgroundColor: appbarParams.backgroundColor}}>
           <Appbar.Action 
             size={30} 
-            icon={appbarParams.icon}
+            icon={typeof appbarParams.icon == 'function' ? appbarParams.icon() : appbarParams.icon}
             onPress={appbarParams.action}/>
           <Appbar.Content
             title={appbarParams.title} // TODO: Routename?

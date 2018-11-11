@@ -140,21 +140,22 @@ export default class Settings extends React.Component {
       try {
         let jsonData = JSON.parse(data);
         if (!jsonData || jsonData.path != 'root') {
-          console.error("Error parsing JSON data:");
-          console.error("Root node should have an element \"path\" equal to \"root\".");
-          console.error(data);
-          this.showSnackbar("JSON data malformed!");
+          console.log("Error parsing JSON data:");
+          console.log("Root node should have an element \"path\" equal to \"root\".");
+          console.log(data);
+          this.showSnackbar("FAILED: JSON data malformed!");
         } else {
           AsyncStorage.setItem(Settings.NodeDataKey, data);
+          this.showSnackbar("Successfully imported data!");
         }
       } catch(e) {
-        console.error("Error parsing JSON data:");
-        console.error(error);
+        console.log("Error parsing JSON data:");
+        console.log(e);
         this.showSnackbar("Data is not JSON!");   
       }
     }, (error) => {
-      console.error("Error reading from clipboard:");
-      console.error(error);
+      console.log("Error reading from clipboard:");
+      console.log(error);
       this.showSnackbar("Error reading clipboard!");
     })
 
