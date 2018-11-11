@@ -33,6 +33,7 @@ class TagContainer extends React.PureComponent {
       scrollEnabled: true,
     };
     this.tagPositions = {};
+    this.columns = new Array(64);
 
     // Pan gesture is used to move tags from place to place
     // The tags are Measured and hit-tested manually, since the tags
@@ -148,7 +149,14 @@ class TagContainer extends React.PureComponent {
         {nativeEvent: {pageX: this.state.panX, pageY: this.state.panY}, }, 
         null],
         {listener: (evt, gestureState) => {
-          let swapTag = this.closestTest(evt.nativeEvent.locationX, evt.nativeEvent.locationY);
+          let hitElemPosition = this.tagPositions[this.hitElem.text];
+          let swapTag = this.closestTest(hitElemPosition.centerX + gestureState.dx, hitElemPosition.centerY + gestureState.dy);
+          
+          // Probably still measuring.
+          if (!swapTag) {
+            return;
+          }
+
           let tagPosition = this.tagPositions[swapTag.closest.text];
           let x = tagPosition.x - 2;
           let y = tagPosition.y;
@@ -211,12 +219,40 @@ class TagContainer extends React.PureComponent {
     });
   }
 
-  setTagDimensions = (tag, x, y, width, height, pageX, pageY) => {
+  setTagDimensions = (tag, x, y, width, height) => {
     let centerX = x + width / 2.0;
-    let centerY = y + height / 2.0; 
+    let centerY = y + height / 2.0;
+    let column = Math.round(y / height);
+    let prevItem = this.tagPositions[tag.text];
+    let newItem = {tag, x, y, centerX, centerY, width, height, column};
 
-    //console.log("Tag dimension for " + tag + " is " + screenX + " " + screenY + " " + width + "x" + height);
-    this.tagPositions[tag.text] = {tag, x, y, centerX, centerY, width, height, pageX, pageY};
+    this.itemHeight = height;
+
+    if (prevItem) {
+      let columnArray = this.columns[prevItem.column];
+      columnArray.splice(columnArray.indexOf(prevItem), 1);
+    }
+
+    if (!this.columns[column]) {
+      this.columns[column] = new Array();
+    }
+
+    this.columns[column].push(newItem);
+
+    this.evaluateNColumns();
+
+    this.tagPositions[tag.text] = newItem;
+  }
+
+  evaluateNColumns = () => {
+    let nColumns = 0;
+    this.columns.reduce((acc, x) => {
+      if (x.length) {
+        nColumns++;
+      }
+    }, null);
+
+    this.nColumns = nColumns;
   }
 
   closestTest = (screenX, screenY) => {
@@ -227,18 +263,24 @@ class TagContainer extends React.PureComponent {
     let side = 0;
 
     // offset Y so we can more easily see where it's being dropped
-    let safeScreenY = screenY - 40;
+    let safeScreenY = screenY - 80;
+    let column = Math.floor(safeScreenY / this.itemHeight);
+    column = Math.min(Math.max(0, column), this.nColumns-1);
 
-    for (let key in this.tagPositions) {
-      let val = this.tagPositions[key];
-      let distX = val.centerX - screenX;
-      let distY = val.centerY - safeScreenY;
-      let dist = Math.sqrt(distX * distX + distY * distY);
+    let columnItems = this.columns[column];
 
-      if (dist < closestTag) {
-        closestTag = dist;
-        closest = val.tag;
-        if (distX > 0) {
+    if (!columnItems) {
+      return null;
+    }
+
+    for (let item of columnItems) {
+      let dist = item.centerX - screenX;
+      let absDist = Math.abs(dist);
+
+      if (absDist < closestTag) {
+        closestTag = absDist;
+        closest = item.tag;
+        if (dist > 0) {
           side = 0;
         } else {
           side = 1;
@@ -246,7 +288,7 @@ class TagContainer extends React.PureComponent {
       }
     };
 
-    return {closest, side};
+    return closest ? {closest, side} : null;
   }
 
   render() {
@@ -271,8 +313,6 @@ class TagContainer extends React.PureComponent {
         let color = item.color;
         let opacity = item.opacity ? item.opacity : 1.0;
         let backgroundColor = color ? {backgroundColor: color} : {};
-        //let additionalStyle = this.props.stylePredicate ? 
-          //this.props.stylePredicate(item, idx) : {};
         return (
           <MeasuredView
               fromView={()=>this.parentView}
@@ -281,9 +321,17 @@ class TagContainer extends React.PureComponent {
               onStartShouldSetResponder={() => {this.hitElem = item; this.scrollView.setNativeProps({scrollEnabled: false}); return false;}}
               setDimensions={this.setTagDimensions} tag={item}>
             <Chip collapsable={false}
-              style={[styles.tag, this.state.dragElem === item && styles.movingTag, backgroundColor, {opacity}]} 
+              style={[styles.tag, backgroundColor, {opacity}, this.state.dragElem === item && styles.movingTag]} 
               responder={() => {}}
-              onClose={() => this.props.onRemoveItem(item)}>
+              onClose={() => {
+                if (this.props.onRemoveItem(item)) {
+                  let item = this.tagPositions[text];
+                  let columnArray = this.columns[item.column];
+                  columnArray.splice(columnArray.indexOf(item), 1);
+                  delete this.tagPositions[text];
+                  this.evaluateNColumns();
+                }
+              }}>
                 {text}
             </Chip>
           </MeasuredView>

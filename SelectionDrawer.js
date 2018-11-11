@@ -152,6 +152,8 @@ export default class SelectionDrawer extends React.PureComponent {
     if (addedIdx > -1) {
       newItems.splice(idx, 1);
       this.addedItems.splice(addedIdx, 1);
+      this.setState({shuffledTags: newItems});
+      return true;
     } else {
       let curItem = newItems[idx]
       curItem.cull = !curItem.cull;
@@ -160,8 +162,9 @@ export default class SelectionDrawer extends React.PureComponent {
       } else {
         curItem.opacity = 1.0;
       }
+      this.setState({shuffledTags: newItems});
+      return false;
     }
-    this.setState({shuffledTags: newItems});
   }
 
   onAddItems = (items) => {

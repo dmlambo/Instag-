@@ -36,6 +36,7 @@ export default class TagEditModal extends React.Component {
     var idx = newItems.indexOf(text);
     newItems.splice(idx, 1);
     this.setState({items: newItems});
+    return true;
   }
 
   onAddItems = (items) => {
