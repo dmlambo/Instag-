@@ -2,7 +2,6 @@ import React from 'react';
 
 import { 
   ActivityIndicator,
-  Animated, 
   StyleSheet,
   LayoutAnimation, 
   BackHandler, 
@@ -20,12 +19,12 @@ import SelectionDrawer from './SelectionDrawer';
 // Paper
 import {
   Appbar,
-  DefaultTheme,
   Surface,
   Title,
   Snackbar,
   Portal,
   TouchableRipple,
+  withTheme,
 } from 'react-native-paper';
 
 "use strict";
@@ -37,9 +36,56 @@ function random32bit() {
   return '00000000'.slice(str.length) + str;
 }
 
-export default class Root extends React.Component {
+class Root extends React.Component {
   constructor(props) {
     super(props);
+
+      this.appBarModeParams = {
+        none: {
+          title: "Tagerty",
+          action: () => this.props.navigation.replace("Settings"),
+          icon: "settings",
+          rightSideActions: [
+            <Appbar.Action 
+              key="1"
+              icon={"clear-all"}
+              onPress={() => {
+                LayoutAnimation.easeInEaseOut();
+                this.setState({mode: 'selection'})}
+              }/>,
+            <Appbar.Action 
+              key="2"
+              icon={"border-color"}
+              onPress={() => {
+                LayoutAnimation.easeInEaseOut();
+                this.setState({mode: 'edit'})}
+              }/>
+          ]
+        },
+        selection: {
+          title: "Select Tag",
+          action: () => {
+            if (this.state.drawerExpanded)
+            { 
+              LayoutAnimation.easeInEaseOut();
+              this.setState({drawerExpanded: false}); 
+            } else { 
+              this.cancelSelection()
+            }},
+          theme: {colors: {...props.theme.colors, primary: '#222222', text: 'white'}},
+          icon: () => 
+            this.state.drawerExpanded ? 
+            "arrow-back" : "cancel",
+        },
+        edit: {
+          title: "Edit List",
+          action: () => {
+            LayoutAnimation.easeInEaseOut();
+            this.setState({mode: 'none'})
+          },
+          icon: "cancel",
+        },
+      };  
 
     this.backSubscription = BackHandler.addEventListener('hardwareBackPress', this.handleBack)
 
@@ -96,8 +142,8 @@ export default class Root extends React.Component {
   }
 
   cancelSelection = () => {
-    this.selectionDrawer.selectionChanged(null, this.state.selectionState);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    this.selectionDrawer.selectionCancelled();
+    LayoutAnimation.easeInEaseOut();
     this.setState({selectionState: new Array(), mode: 'none', drawerExpanded: false}, () => {
       this.props.screenProps.setDrawerLock(false);
     });
@@ -229,10 +275,9 @@ export default class Root extends React.Component {
       this.selectionDrawer.selectionChanged(null, [path]);
     }
 
-    let mode = selectionState.length ? 'selection' : 'none';
     LayoutAnimation.easeInEaseOut();
-    this.setState({selectionState, mode}, () => {
-      this.props.screenProps.setDrawerLock(this.state.mode == 'selection');
+    this.setState({selectionState, mode: 'selection'}, () => {
+      this.props.screenProps.setDrawerLock(true);
     });
   }
 
@@ -243,7 +288,7 @@ export default class Root extends React.Component {
   getSelectionWidget = () => {
     return (
       <SelectionDrawer 
-        open={this.state.selectionState.length > 0}
+        open={this.state.mode == 'selection'}
         ref={x => this.selectionDrawer = x}
         onExpandPressed={this.onExpandDrawerPressed} 
         expanded={this.state.drawerExpanded} 
@@ -256,7 +301,7 @@ export default class Root extends React.Component {
     if (this.state.nodeData != undefined) {
       return (
         <SafeAreaView style={{flex: 1}}>
-          <ScrollView>
+          <ScrollView contentContainerStyle={{paddingBottom: 24}}>
             <View style={{padding: 4}}>
             {
               this.state.nodeData.children &&
@@ -272,6 +317,7 @@ export default class Root extends React.Component {
                   onHighPriority={this.onHighPriorityNode}
                   mode={this.state.mode}
                   nodeData={child}
+                  selectedStyle={{elevation: 16, borderColor: '#111'}}
                   pathForNode={Settings.createPathForNode}
                   selectedPredicate={this.selectedPredicate}
                   parentPath={new Array(this.state.nodeData.path)}/>
@@ -301,41 +347,11 @@ export default class Root extends React.Component {
     }
   }
 
-  appBarModeParams = {
-    none: {
-      title: "Tagerty",
-      backgroundColor: DefaultTheme.colors.primary,
-      action: () => this.props.navigation.replace("Settings"),
-      icon: "settings",
-    },
-    selection: {
-      title: "Select Tag",
-      backgroundColor: DefaultTheme.colors.accent,
-      action: () => {
-        if (this.state.drawerExpanded)
-        { 
-          LayoutAnimation.easeInEaseOut();
-          this.setState({drawerExpanded: false}); 
-        } else { 
-          this.cancelSelection()
-        }},
-      icon: () => 
-        this.state.drawerExpanded ? 
-        "arrow-back" : "cancel",
-    },
-    edit: {
-      title: "Edit List",
-      backgroundColor: DefaultTheme.colors.accent,
-      action: () => this.setState({mode: 'none'}),
-      icon: "cancel",
-    },
-  };
-
   render() {
     let appbarParams = this.appBarModeParams[this.state.mode];
     return (
-      <View style={StyleSheet.absoluteFill}>
-        <Appbar.Header style={{backgroundColor: appbarParams.backgroundColor}}>
+      <View style={{...StyleSheet.absoluteFillObject, backgroundColor: this.props.theme.colors.background}}>
+        <Appbar.Header theme={appbarParams.theme}>
           <Appbar.Action 
             size={30} 
             icon={typeof appbarParams.icon == 'function' ? appbarParams.icon() : appbarParams.icon}
@@ -344,10 +360,7 @@ export default class Root extends React.Component {
             title={appbarParams.title} // TODO: Routename?
           />
           {
-            this.state.mode == 'none' && 
-            <Appbar.Action 
-              icon={"border-color"}
-              onPress={() => this.setState({mode: 'edit'})}/>
+            appbarParams.rightSideActions
           }
         </Appbar.Header>
         {
@@ -372,3 +385,5 @@ export default class Root extends React.Component {
     );
   }
 }
+
+export default withTheme(Root);

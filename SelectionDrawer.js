@@ -45,8 +45,14 @@ export default class SelectionDrawer extends React.PureComponent {
     });
   }
 
+  selectionCancelled = () => {
+    this.addedItems = new Array();
+    this.selectedItems = new Array();
+    this.setState({shuffledTags: new Array()});
+  }
+
   // Must be called to order a reshuffle.
-  selectionChanged(added, removed) {
+  selectionChanged = (added, removed) => {
     const highPriColor = 'red';
     const lowPriColor = '';
 
@@ -224,14 +230,14 @@ export default class SelectionDrawer extends React.PureComponent {
             this.props.open && (
               this.props.expanded ? 
               <View key="0" style={styles.bottomFabContainer}>
-                <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
-                <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
-                <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="add" onPress={() => this.setState({editModalVisible: true})}/>
+                <FAB style={styles.bottomFab} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
+                <FAB style={styles.bottomFab} icon="assignment" onPress={this.copyTags}/>
+                <FAB style={styles.bottomFab} icon="add" onPress={() => this.setState({editModalVisible: true})}/>
               </View>
               :
               <View key="1" style={styles.bottomFabContainer}>
-                <FAB style={styles.bottomFab} label={this.state.maxTags ? quota + "/" + this.state.maxTags : "No Limit"} icon="filter-list" disabled={!this.state.shuffledTags.length} onPress={this.onCycleMaxTags}/>
-                <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
+                <FAB style={styles.bottomFab} label={this.state.maxTags ? quota + "/" + this.state.maxTags : "No Limit"} icon="filter-list" onPress={this.onCycleMaxTags}/>
+                <FAB style={styles.bottomFab} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
                 <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
               </View>
             ) 

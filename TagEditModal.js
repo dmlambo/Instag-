@@ -30,7 +30,8 @@ export default class TagEditModal extends React.Component {
     }
   }
 
-  onRemove = (text) => {
+  onRemove = (item) => {
+    let text = item.text;
     console.log("Removing #" + text);
     var newItems = this.state.items ? this.state.items.slice(0) : new Array();
     var idx = newItems.indexOf(text);

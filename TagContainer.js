@@ -3,7 +3,6 @@ import React from 'react';
 import { 
   StyleSheet, 
   View, 
-  StatusBar, 
   PanResponder,
   Animated,
   ScrollView,
@@ -15,7 +14,7 @@ import MeasuredView from './MeasuredView';
 
 //import { SafeAreaView } from 'react-navigation';
 // Paper
-import { DefaultTheme, Portal, Chip, withTheme, Paragraph } from "react-native-paper";
+import { Portal, Chip, withTheme, Paragraph } from "react-native-paper";
 
 "use strict";
 
@@ -346,7 +345,7 @@ class TagContainer extends React.PureComponent {
               left: this.state.caret.x,
               width: 4,
               height: 36,
-              backgroundColor: DefaultTheme.colors.accent,
+              backgroundColor: this.props.theme.colors.accent,
               borderRadius: 2,
               opacity: 0.5, }}
               /> 
@@ -387,7 +386,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     margin: 3,
     height: 32,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   flextainer: {
     margin: 8,

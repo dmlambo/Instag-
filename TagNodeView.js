@@ -2,14 +2,12 @@ import React from 'react';
 import { 
   StyleSheet, 
   LayoutAnimation, 
-  View, 
-  TouchableWithoutFeedback } from 'react-native';
+  View } from 'react-native';
 
 import PropTypes from 'prop-types';
 
 // Paper
 import { 
-  DefaultTheme, 
   Surface, 
   Paragraph, 
   Title, 
@@ -30,9 +28,6 @@ import {
 class TagNodeView extends React.Component {
   static propTypes = {
     selectedColor: PropTypes.string,
-  };
-  static defaultProps = {
-    selectedColor: DefaultTheme.colors.accent,
   };
 
   constructor(props) {
@@ -105,14 +100,12 @@ class TagNodeView extends React.Component {
   getUtilityButtons = (selected) => {
     switch (this.props.mode) {
       case 'selection': {
-        let opacity = 0.25;
         let color = null
         if (this.props.nodeData.highPriority) {
-          opacity = 1.0;
           color = 'red';
         }
         return (
-          selected && <IconButton style={[styles.utilityButton, {opacity}]} color={color} onPress={this.onHighPriority} icon="priority-high"/>
+          selected && <IconButton style={styles.utilityButton} color={color} onPress={this.onHighPriority} icon="priority-high"/>
         );
       }
       case 'edit':
@@ -131,7 +124,7 @@ class TagNodeView extends React.Component {
     var hasData = this.props.nodeData.data && this.props.nodeData.data.length > 0;
     var tagsText = hasData && this.props.nodeData.data.map((x)=>"#" + x).join(" ");
     var selected = this.props.selectedPredicate(this.path);
-    var backgroundColor = selected ? this.props.selectedColor : this.props.style.backgroundColor;
+    var selectedStyle = selected ? this.props.selectedStyle : null;
     var expandable = this.props.nodeData.children && this.props.nodeData.children.length > 0;
     var defaultAction = () => {};
     
@@ -142,7 +135,7 @@ class TagNodeView extends React.Component {
     }
 
     return (
-      <Surface style={[styles.container, this.props.style, backgroundColor && {backgroundColor}]}>
+      <Surface style={[styles.container, this.props.style, selectedStyle]}>
         <TouchableRipple 
           borderless 
           onPress={defaultAction} 
@@ -175,7 +168,7 @@ class TagNodeView extends React.Component {
                 {this.props.nodeData.title || "Untitled"}
                 {
                   expandable && 
-                  <Title style={{color: '#f005', fontSize: 12}}> +{this.props.nodeData.children.length}</Title>
+                  <Title style={{fontSize: 12, color: 'lightgray'}} opacity={0.2}> +{this.props.nodeData.children.length}</Title>
                 }
               </Title>
               { this.getUtilityButtons(selected) }
@@ -195,9 +188,9 @@ class TagNodeView extends React.Component {
 
 const styles = StyleSheet.create({
   container: {
-    elevation: 4, 
-    borderRadius: 4,
-    backgroundColor: DefaultTheme.colors.surface, 
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   titleBar: {
     width: '100%',
@@ -209,6 +202,7 @@ const styles = StyleSheet.create({
   },
   titleBarText: {
     flex: 1.0,
+    color: 'black', // Paper themeing doesn't separate the text styles.
   },
   titleBarExpand: {
     fontSize: 24,

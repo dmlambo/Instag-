@@ -50,7 +50,7 @@ export default class DraggableDrawer extends React.PureComponent {
         this.props.open &&
         <View style={{flexDirection: 'column'}}>
           <TouchableWithoutFeedback onPress={this.props.onExpandPressed}>
-            <Icon style={{textAlign: 'center'}} name={iconName} size={24}/>
+            <Icon style={{textAlign: 'center'}} name={iconName} size={30}/>
           </TouchableWithoutFeedback>
           <Divider/>
           { content }
@@ -63,7 +63,7 @@ export default class DraggableDrawer extends React.PureComponent {
 
 const styles = StyleSheet.create({
   defaultStyle: {
-    elevation: 5,
+    elevation: 8,
     backgroundColor: 'white',
   }
 })

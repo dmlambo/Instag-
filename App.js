@@ -54,6 +54,17 @@ let TopStackNavigator = createStackNavigator({
   headerMode: 'none',
 });
 
+const mainTheme = {
+  ...DefaultTheme,
+  roundness: 4,
+  colors: {
+    ...DefaultTheme.colors,
+    background: 'white',
+    text: '#333',
+    primary: 'white',
+  }
+}
+
 export default class App extends React.Component {
   constructor(props) {
     super(props);
@@ -71,7 +82,7 @@ export default class App extends React.Component {
 
   render() {
     return (
-      <PaperProvider theme={DefaultTheme}>
+      <PaperProvider theme={mainTheme}>
         <TopStackNavigator screenProps={{setDrawerLock: this.setDrawerLock, drawerLockMode: this.state.drawerLocked ? 'locked-closed' : 'unlocked'}}/>
       </PaperProvider>
     );

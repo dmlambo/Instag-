@@ -19,8 +19,8 @@ export default class MeasuredView extends React.PureComponent {
 		}
 	};
 
-	onMeasure = (x, y, width, height, pageX, pageY) => {
-		this.props.setDimensions(this.props.tag, x, y, width, height, pageX, pageY);
+	onMeasure = (x, y, width, height) => {
+		this.props.setDimensions(this.props.tag, x, y, width, height);
 	};
 
 	render() {
