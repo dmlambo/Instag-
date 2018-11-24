@@ -40,54 +40,54 @@ class Root extends React.Component {
   constructor(props) {
     super(props);
 
-      this.appBarModeParams = {
-        none: {
-          title: "Tagerty",
-          action: () => this.props.navigation.replace("Settings"),
-          theme: {colors: {...props.theme.colors, primary: 'white'}},
-          icon: "settings",
-          rightSideActions: [
-            <Appbar.Action 
-              key="1"
-              icon={"clear-all"}
-              onPress={() => {
-                LayoutAnimation.easeInEaseOut();
-                this.setState({mode: 'selection'})}
-              }/>,
-            <Appbar.Action 
-              key="2"
-              icon={"border-color"}
-              onPress={() => {
-                LayoutAnimation.easeInEaseOut();
-                this.setState({mode: 'edit'})}
-              }/>
-          ]
-        },
-        selection: {
-          title: "Select Tags",
-          action: () => {
-            if (this.state.drawerExpanded)
-            { 
+    this.appBarModeParams = {
+      none: {
+        title: "Tagerty",
+        action: () => this.props.navigation.replace("Settings"),
+        theme: {colors: {...props.theme.colors, primary: 'white'}},
+        icon: "settings",
+        rightSideActions: [
+          <Appbar.Action 
+            key="1"
+            icon={"clear-all"}
+            onPress={() => {
               LayoutAnimation.easeInEaseOut();
-              this.setState({drawerExpanded: false}); 
-            } else { 
-              this.cancelSelection()
-            }},
-          theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
-          icon: () => 
-            this.state.drawerExpanded ? 
-            "arrow-back" : "cancel",
-        },
-        edit: {
-          title: "Edit List",
-          action: () => {
+              this.setState({mode: 'selection'})}
+            }/>,
+          <Appbar.Action 
+            key="2"
+            icon={"border-color"}
+            onPress={() => {
+              LayoutAnimation.easeInEaseOut();
+              this.setState({mode: 'edit'})}
+            }/>
+        ]
+      },
+      selection: {
+        title: "Select Tags",
+        action: () => {
+          if (this.state.drawerExpanded)
+          { 
             LayoutAnimation.easeInEaseOut();
-            this.setState({mode: 'none'})
-          },
-          theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
-          icon: "cancel",
+            this.setState({drawerExpanded: false}); 
+          } else { 
+            this.cancelSelection()
+          }},
+        theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
+        icon: () => 
+          this.state.drawerExpanded ? 
+          "arrow-back" : "cancel",
+      },
+      edit: {
+        title: "Edit List",
+        action: () => {
+          LayoutAnimation.easeInEaseOut();
+          this.setState({mode: 'none'})
         },
-      };  
+        theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
+        icon: "cancel",
+      },
+    };  
 
     this.backSubscription = BackHandler.addEventListener('hardwareBackPress', this.handleBack)
 

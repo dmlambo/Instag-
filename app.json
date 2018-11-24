@@ -1,13 +1,17 @@
 {
   "expo": {
     "sdkVersion": "27.0.0",
-    "name": "InstaTag",
+    "name": "Tagerty",
     "slug": "instatag",
+    "icon": "./assets/Icon.png",
     "version": "0.1.0",
-    "description": "",
+    "description": "Hashtag Management",
     "splash": {
       "image": "./assets/Splash.png",
       "backgroundColor": "#bbbbbb"
-    }  
+    },
+    "android": {
+      "package": "com.dmlamb.instatag"
+    }
   }
 }
