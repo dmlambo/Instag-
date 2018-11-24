@@ -5,5 +5,9 @@
     "slug": "instatag",
     "version": "0.1.0",
     "description": ""
+  },
+  "splash": {
+    "image": "./assets/Splash.png",
+    "backgroundColor": "#bbbbbb"
   }
 }
