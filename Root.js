@@ -44,6 +44,7 @@ class Root extends React.Component {
         none: {
           title: "Tagerty",
           action: () => this.props.navigation.replace("Settings"),
+          theme: {colors: {...props.theme.colors, primary: 'white'}},
           icon: "settings",
           rightSideActions: [
             <Appbar.Action 
@@ -72,7 +73,7 @@ class Root extends React.Component {
             } else { 
               this.cancelSelection()
             }},
-          theme: {colors: {...props.theme.colors, primary: '#222222', text: 'white'}},
+          theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
           icon: () => 
             this.state.drawerExpanded ? 
             "arrow-back" : "cancel",
@@ -83,6 +84,7 @@ class Root extends React.Component {
             LayoutAnimation.easeInEaseOut();
             this.setState({mode: 'none'})
           },
+          theme: {colors: {...props.theme.colors, primary: '#222', text: 'white'}},
           icon: "cancel",
         },
       };  
@@ -350,7 +352,7 @@ class Root extends React.Component {
   render() {
     let appbarParams = this.appBarModeParams[this.state.mode];
     return (
-      <View style={{...StyleSheet.absoluteFillObject, backgroundColor: this.props.theme.colors.background}}>
+      <View style={{...StyleSheet.absoluteFillObject, backgroundColor: 'white'}}>
         <Appbar.Header theme={appbarParams.theme}>
           <Appbar.Action 
             size={30} 

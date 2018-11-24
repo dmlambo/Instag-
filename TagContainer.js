@@ -117,6 +117,9 @@ class TagContainer extends React.PureComponent {
             ])
           ).start();
 
+          let borderColor = this.state.dragElem.color ? 
+            {borderColor: this.state.dragElem.color} :
+            null;
           let dragItem =             
             this.state.dragElem &&
               <Chip
@@ -130,7 +133,9 @@ class TagContainer extends React.PureComponent {
                     left: Animated.add(this.state.panX, tagXOffset),
                     top: Animated.add(Animated.add(this.state.panY, pop), tagYOffset),
                     margin: 0,
-              }]}>{this.state.dragElem.text}</Chip>
+                  },
+                  borderColor,
+                ]}>{this.state.dragElem.text}</Chip>
 
           // TODO: Is this OK?
           this.setState({topLevelView: dragItem});
@@ -304,7 +309,7 @@ class TagContainer extends React.PureComponent {
         let text = item.text;
         let color = item.color;
         let opacity = item.opacity ? item.opacity : 1.0;
-        let backgroundColor = color ? {backgroundColor: color} : {};
+        let borderColor = color ? {borderColor: color} : {};
         return (
           <MeasuredView
               fromView={()=>this.parentView}
@@ -313,7 +318,7 @@ class TagContainer extends React.PureComponent {
               onStartShouldSetResponder={() => {this.hitElem = item; this.scrollView.setNativeProps({scrollEnabled: false}); return false;}}
               setDimensions={this.setTagDimensions} tag={item}>
             <Chip collapsable={false}
-              style={[styles.tag, backgroundColor, {opacity}, this.state.dragElem === item && styles.movingTag]} 
+              style={[styles.tag, borderColor, {opacity}, this.state.dragElem === item && styles.movingTag]} 
               responder={() => {}}
               onClose={() => {
                 if (this.props.onRemoveItem(item)) {

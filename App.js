@@ -32,14 +32,6 @@ const DrawerComponent = (props) => (
   </SafeAreaView>
 );
 
-let RootNavigator = createDrawerNavigator({
-  Tags: {
-    screen: Root
-  },
-}, {
-  contentComponent: DrawerComponent,
-});
-
 let TopStackNavigator = createStackNavigator({
   Root: {
     screen: Root,
@@ -56,12 +48,9 @@ let TopStackNavigator = createStackNavigator({
 
 const mainTheme = {
   ...DefaultTheme,
-  roundness: 4,
   colors: {
     ...DefaultTheme.colors,
-    background: 'white',
     text: '#333',
-    primary: 'white',
   }
 }
 
