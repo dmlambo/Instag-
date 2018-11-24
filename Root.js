@@ -63,7 +63,7 @@ class Root extends React.Component {
           ]
         },
         selection: {
-          title: "Select Tag",
+          title: "Select Tags",
           action: () => {
             if (this.state.drawerExpanded)
             { 
