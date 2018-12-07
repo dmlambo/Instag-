@@ -12,6 +12,7 @@
     },
     "android": {
       "package": "com.dmlamb.instatag",
+      "versionCode": 2,
       "permissions": []
     }
   }
