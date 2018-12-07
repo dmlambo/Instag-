@@ -133,7 +133,7 @@ export default class SelectionDrawer extends React.PureComponent {
   }
 
   copyTags = () => {
-    let firstNTags = this.state.shuffledTags;
+    let firstNTags = this.getUnculledItems();
     if (this.state.maxTags) {
       firstNTags = firstNTags.slice(0, this.state.maxTags);
     }
@@ -148,6 +148,10 @@ export default class SelectionDrawer extends React.PureComponent {
 
   onReorderItems = (shuffledTags) => {
     this.setState({shuffledTags});
+  }
+
+  getUnculledItems = () => {
+    return this.state.shuffledTags.filter(x => !x.cull);
   }
 
   onRemove = (item) => {
@@ -196,15 +200,16 @@ export default class SelectionDrawer extends React.PureComponent {
   }
 
   render() {
-    let quota = this.state.shuffledTags && 
-      this.state.shuffledTags.length > this.state.maxTags ? this.state.maxTags : this.state.shuffledTags.length;
+    let unculledItems = this.getUnculledItems();
+    let quota = unculledItems && 
+    unculledItems.length > this.state.maxTags ? this.state.maxTags : unculledItems.length;
 
     let previewComponents = 
       <TagContainer 
         preview
         stylePredicate={(item, idx) => idx && this.state.maxTags > 0 && idx >= this.state.maxTags && {opacity: 0.1}}
         style={{width: '100%', height: '100%'}}
-        items={this.state.shuffledTags} 
+        items={unculledItems} 
         onReorderItems={() => {}}/>
     let chipComponents = 
       <TagEditorView 
@@ -238,7 +243,7 @@ export default class SelectionDrawer extends React.PureComponent {
               <View key="1" style={styles.bottomFabContainer}>
                 <FAB style={styles.bottomFab} label={this.state.maxTags ? quota + "/" + this.state.maxTags : "No Limit"} icon="filter-list" onPress={this.onCycleMaxTags}/>
                 <FAB style={styles.bottomFab} icon={this.state.shuffle ? "shuffle" : "list"} onPress={this.onShuffle}/>
-                <FAB style={styles.bottomFab} disabled={!this.state.shuffledTags.length} icon="assignment" onPress={this.copyTags}/>
+                <FAB style={styles.bottomFab} disabled={!unculledItems.length} icon="assignment" onPress={this.copyTags}/>
               </View>
             ) 
           ) : <ActivityIndicator/>

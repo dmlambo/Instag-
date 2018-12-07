@@ -139,8 +139,7 @@ class TagNodeView extends React.Component {
         <TouchableRipple 
           borderless 
           onPress={defaultAction} 
-          onLongPress={this.onLongPress}
-          style={[...StyleSheet.absoluteFillObject, {borderRadius: 4}]}>
+          onLongPress={this.onLongPress}>
           <View>
             <Portal>
               <Dialog
